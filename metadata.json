@@ -1,0 +1,8 @@
+{
+  "name": "Gestor de Listas de Materiais & Insumos",
+  "description": "Sistema completo para criação e gestão de listas de materiais por máquina e cliente, com catálogo pré-carregado, pesquisa rápida, exportação em Excel e PDF, compartilhamento via WhatsApp e parametrização dinâmica.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
