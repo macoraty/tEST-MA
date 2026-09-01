@@ -171,10 +171,21 @@ const ListPreviewModalContent: React.FC<ListPreviewModalContentProps> = ({
       >
         {/* Modal Top Header */}
         <div className="flex flex-col gap-3 border-b border-zinc-800/80 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
-          <div className="flex items-start gap-3">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-cyan-500/30 bg-cyan-950/40 text-cyan-400">
-              <Eye className="h-5 w-5" />
-            </div>
+          <div className="flex items-start gap-3.5">
+            {settings.companyLogo ? (
+              <div className="flex h-12 w-20 shrink-0 items-center justify-center rounded-xl border border-zinc-800 bg-white/95 p-1 shadow-sm">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={settings.companyLogo}
+                  alt={settings.companyName || 'Logo'}
+                  className="max-h-full max-w-full object-contain"
+                />
+              </div>
+            ) : (
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-cyan-500/30 bg-cyan-950/40 text-cyan-400">
+                <Eye className="h-5 w-5" />
+              </div>
+            )}
             <div>
               <div className="flex flex-wrap items-center gap-2">
                 <h2 className="text-lg font-bold tracking-tight text-zinc-100 sm:text-xl">
@@ -224,7 +235,7 @@ const ListPreviewModalContent: React.FC<ListPreviewModalContentProps> = ({
               id="btn-preview-pdf"
               onClick={() => exportListToPDF(list, settings)}
               className="flex items-center gap-1.5 rounded-xl border border-rose-500/30 bg-rose-950/40 px-3 py-1.5 text-xs font-medium text-rose-400 transition hover:bg-rose-900/50 hover:text-rose-300"
-              title="Exportar PDF"
+              title={`Exportar PDF (Template: ${settings.pdfTemplate || 'modern'})`}
             >
               <FileText className="h-3.5 w-3.5" />
               <span>PDF</span>
@@ -234,7 +245,7 @@ const ListPreviewModalContent: React.FC<ListPreviewModalContentProps> = ({
               id="btn-preview-excel"
               onClick={() => exportListToExcel(list, settings)}
               className="flex items-center gap-1.5 rounded-xl border border-emerald-500/30 bg-emerald-950/40 px-3 py-1.5 text-xs font-medium text-emerald-400 transition hover:bg-emerald-900/50 hover:text-emerald-300"
-              title="Exportar Excel (.xlsx)"
+              title={`Exportar Excel (Template: ${settings.excelTemplate || 'complete'})`}
             >
               <FileSpreadsheet className="h-3.5 w-3.5" />
               <span>Excel</span>

@@ -25,6 +25,7 @@ export default function Home() {
     saveCatalogItem,
     deleteCatalogItem,
     resetCatalogToDefault,
+    regenerateAllCodes,
     saveSettings,
     addGroup,
     deleteGroup,
@@ -222,6 +223,7 @@ export default function Home() {
             onExportBackup={exportBackupJSON}
             onImportBackup={importBackupJSON}
             onResetCatalog={resetCatalogToDefault}
+            onRegenerateAllCodes={regenerateAllCodes}
           />
         )}
       </main>
@@ -249,6 +251,7 @@ export default function Home() {
         }}
         onSave={handleSaveItemModal}
         initialItem={editingCatalogItem}
+        catalog={catalog}
         groups={settings.groups}
         units={settings.units}
         currencySymbol={settings.currencySymbol}

@@ -28,7 +28,6 @@ import {
   PlusCircle,
   Sparkles,
 } from 'lucide-react';
-import confetti from 'canvas-confetti';
 import { ListPreviewModal } from '@/components/ListPreviewModal';
 
 interface ListEditorProps {
@@ -215,7 +214,7 @@ export const ListEditor: React.FC<ListEditorProps> = ({
   };
 
   // Save current list
-  const handleSave = () => {
+  const handleSave = async () => {
     const updated: MaterialList = {
       ...list,
       items,
@@ -223,7 +222,12 @@ export const ListEditor: React.FC<ListEditorProps> = ({
     };
     onSaveList(updated);
     setHasSaved(true);
-    confetti({ particleCount: 40, spread: 60, origin: { y: 0.8 } });
+    try {
+      const confetti = (await import('canvas-confetti')).default;
+      confetti({ particleCount: 40, spread: 60, origin: { y: 0.8 } });
+    } catch {
+      // safe fallback if canvas is not available
+    }
     setTimeout(() => setHasSaved(false), 3000);
   };
 

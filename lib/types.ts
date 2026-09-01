@@ -42,10 +42,15 @@ export interface MaterialList {
   updatedAt: string;
 }
 
+export type PDFTemplateType = 'modern' | 'corporate' | 'workshop' | 'quote';
+export type ExcelTemplateType = 'complete' | 'engineering' | 'procurement';
+export type PDFThemeColor = 'navy' | 'cyan' | 'emerald' | 'slate' | 'crimson';
+
 export interface AppSettings {
   groups: string[];
   units: string[];
   companyName: string;
+  companyLogo?: string; // Base64 data URL for company logo
   companyPhone: string;
   companyEmail: string;
   companyCnpj: string;
@@ -53,6 +58,23 @@ export interface AppSettings {
   defaultResponsible: string;
   currencySymbol: string;
   whatsAppTemplate: string;
+
+  // PDF Template Customization
+  pdfTemplate?: PDFTemplateType;
+  pdfThemeColor?: PDFThemeColor;
+  pdfShowLogo?: boolean;
+  pdfShowPrices?: boolean;
+  pdfShowWeights?: boolean;
+  pdfShowSignatures?: boolean;
+  pdfShowNotes?: boolean;
+  pdfFooterText?: string;
+
+  // Excel Template Customization
+  excelTemplate?: ExcelTemplateType;
+  excelIncludeSummary?: boolean;
+  excelIncludeHeader?: boolean;
+  excelShowPrices?: boolean;
+  excelShowWeights?: boolean;
 }
 
 export type ActiveTab = 'lists' | 'new-list' | 'catalog' | 'settings';

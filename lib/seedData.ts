@@ -1,4 +1,5 @@
 import { CatalogItem, AppSettings } from './types';
+import { regenerateAllCatalogCodes } from './codeUtils';
 
 // Raw data extracted from the 15-page catalog
 const RAW_ITEMS_DATA: [string, string, string, number][] = [
@@ -775,27 +776,28 @@ function resolveGroup(code: string, desc: string): string {
 }
 
 export function generateSeedCatalog(): CatalogItem[] {
-  return RAW_ITEMS_DATA.map((item, index) => {
+  const baseItems: CatalogItem[] = RAW_ITEMS_DATA.map((item, index) => {
     const rawCode = item[0];
     const desc = item[1];
     const unit = item[2];
     const weight = item[3];
     const group = resolveGroup(rawCode, desc);
     const id = `item-${index + 1}`;
-    const code = `${rawCode.replace('.', '')}-${String(index + 1).padStart(4, '0')}`;
 
     return {
       id,
-      code,
+      code: '',
       description: desc,
       group,
       unit,
       cost: 0,
       weightBar: weight || 0,
       notes: weight > 0 ? `Peso ref. barra/unidade: ${weight} kg` : '',
-      createdAt: new Date().toISOString(),
+      createdAt: '2026-01-01T00:00:00.000Z',
     };
   });
+
+  return regenerateAllCatalogCodes(baseItems).updatedCatalog;
 }
 
 export const DEFAULT_GROUPS: string[] = [
@@ -827,6 +829,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   groups: DEFAULT_GROUPS,
   units: DEFAULT_UNITS,
   companyName: 'Metalúrgica & Manutenção Industrial',
+  companyLogo: '',
   companyPhone: '(11) 99999-8888',
   companyEmail: 'contato@metalurgica.com.br',
   companyCnpj: '00.000.000/0001-00',
@@ -846,6 +849,23 @@ export const DEFAULT_SETTINGS: AppSettings = {
 ━━━━━━━━━━━━━━━━━━━
 {resumo_financeiro}
 📝 *Observações:* {observacoes}`,
+
+  // PDF Default Template
+  pdfTemplate: 'modern',
+  pdfThemeColor: 'navy',
+  pdfShowLogo: true,
+  pdfShowPrices: true,
+  pdfShowWeights: true,
+  pdfShowSignatures: true,
+  pdfShowNotes: true,
+  pdfFooterText: 'Documento técnico emitido pelo Sistema de Gestão Industrial',
+
+  // Excel Default Template
+  excelTemplate: 'complete',
+  excelIncludeSummary: true,
+  excelIncludeHeader: true,
+  excelShowPrices: true,
+  excelShowWeights: true,
 };
 
 export const INITIAL_SAMPLE_LISTS = [
