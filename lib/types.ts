@@ -47,10 +47,12 @@ export type ExcelTemplateType = 'complete' | 'engineering' | 'procurement';
 export type PDFThemeColor = 'navy' | 'cyan' | 'emerald' | 'slate' | 'crimson';
 
 export interface AppSettings {
+  appName?: string; // Custom application/system name (e.g. ListaPro Industrial)
+  appLogo?: string; // Base64 data URL for program/system logo in navbar
   groups: string[];
   units: string[];
   companyName: string;
-  companyLogo?: string; // Base64 data URL for company logo
+  companyLogo?: string; // Base64 data URL for company logo in PDF/reports
   companyPhone: string;
   companyEmail: string;
   companyCnpj: string;

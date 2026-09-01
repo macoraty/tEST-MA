@@ -1,6 +1,8 @@
 import type {NextConfig} from 'next';
 
 const nextConfig: NextConfig = {
+  output: 'export',
+  distDir: 'dist',
   reactStrictMode: true,
   eslint: {
     ignoreDuringBuilds: true,
@@ -8,8 +10,9 @@ const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: false,
   },
-  // Allow access to remote image placeholder.
+  // Allow access to remote image placeholder and enable static export
   images: {
+    unoptimized: true,
     remotePatterns: [
       {
         protocol: 'https',

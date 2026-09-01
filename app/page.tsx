@@ -160,6 +160,7 @@ export default function Home() {
         onOpenNewListModal={handleOpenNewListModal}
         listsCount={lists.length}
         catalogCount={catalog.length}
+        settings={settings}
       />
 
       {/* Main Container */}

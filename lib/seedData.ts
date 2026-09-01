@@ -826,6 +826,8 @@ export const DEFAULT_UNITS: string[] = [
 ];
 
 export const DEFAULT_SETTINGS: AppSettings = {
+  appName: 'ListaPro Industrial',
+  appLogo: '',
   groups: DEFAULT_GROUPS,
   units: DEFAULT_UNITS,
   companyName: 'Metalúrgica & Manutenção Industrial',

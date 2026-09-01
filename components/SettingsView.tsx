@@ -79,6 +79,11 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   const [newGroupInput, setNewGroupInput] = useState('');
   const [newUnitInput, setNewUnitInput] = useState('');
 
+  // Editable app branding & logo settings
+  const [appName, setAppName] = useState(settings.appName || 'ListaPro Industrial');
+  const [appLogo, setAppLogo] = useState(settings.appLogo || '');
+  const [appLogoError, setAppLogoError] = useState<string | null>(null);
+
   // Editable company settings
   const [companyName, setCompanyName] = useState(settings.companyName || '');
   const [companyLogo, setCompanyLogo] = useState(settings.companyLogo || '');
@@ -140,7 +145,40 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   const [isRegenerateModalOpen, setIsRegenerateModalOpen] = useState(false);
   const [codeRegenFeedback, setCodeRegenFeedback] = useState<string | null>(null);
 
-  // Logo upload handler
+  // Program Logo upload handler
+  const handleAppLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setAppLogoError(null);
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      setAppLogoError('Por favor, selecione um arquivo de imagem válido (PNG, JPG, SVG, WEBP).');
+      return;
+    }
+
+    if (file.size > 3 * 1024 * 1024) {
+      setAppLogoError('A imagem deve ter no máximo 3MB.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const base64Data = event.target?.result as string;
+      setAppLogo(base64Data);
+    };
+    reader.onerror = () => {
+      setAppLogoError('Erro ao ler a imagem. Tente novamente.');
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  };
+
+  const handleResetAppLogo = () => {
+    setAppLogo('');
+    setAppLogoError(null);
+  };
+
+  // Company Logo upload handler
   const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     setLogoError(null);
     const file = e.target.files?.[0];
@@ -177,6 +215,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
     if (e) e.preventDefault();
     const updatedSettings: AppSettings = {
       ...settings,
+      appName: appName.trim() || 'ListaPro Industrial',
+      appLogo,
       companyName,
       companyLogo,
       companyPhone,
@@ -264,6 +304,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 
   const currentActiveSettings: AppSettings = {
     ...settings,
+    appName: appName.trim() || 'ListaPro Industrial',
+    appLogo,
     companyName,
     companyLogo,
     companyPhone,
@@ -297,7 +339,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             Configurações & Parâmetros do Sistema
           </h1>
           <p className="text-xs text-zinc-400">
-            Personalize logo da empresa, templates de PDF/Excel, dados cadastrais, grupos e códigos
+            Personalize o logo do programa, logo da empresa, templates de PDF/Excel, dados cadastrais, grupos e códigos
           </p>
         </div>
 
@@ -328,7 +370,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
           }`}
         >
           <Building className="h-4 w-4" />
-          <span>Dados da Empresa & Logo</span>
+          <span>Identidade Visual & Logos (Programa / Empresa)</span>
         </button>
 
         <button
@@ -401,16 +443,149 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
       {activeSubTab === 'company' && (
         <div className="max-w-4xl space-y-6">
           <form onSubmit={handleSaveAllSettings} className="space-y-6">
-            {/* Logo Upload Box */}
+            {/* 1. SEÇÃO: LOGOTIPO & NOME DO PROGRAMA */}
+            <div className="rounded-2xl border border-cyan-500/30 bg-gradient-to-b from-cyan-950/20 via-zinc-950 to-zinc-950 p-6 shadow-xl sm:p-7">
+              <div className="flex items-center gap-2.5 border-b border-zinc-800 pb-3">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-cyan-500/10 text-cyan-400">
+                  <Sparkles className="h-4 w-4" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-sm font-bold text-zinc-100">Logotipo do Programa (Barra Superior)</h3>
+                    <span className="rounded bg-cyan-500/20 px-2 py-0.5 text-[10px] font-semibold text-cyan-300 border border-cyan-500/30">
+                      Sistema Principal
+                    </span>
+                  </div>
+                  <p className="text-xs text-zinc-400">
+                    Insira uma imagem personalizada para o logo do programa ou utilize o monograma padrão com a letra &quot;M&quot;.
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-5 grid grid-cols-1 gap-6 sm:grid-cols-3">
+                {/* Logo Preview no Header */}
+                <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-cyan-500/30 bg-zinc-900/80 p-5 text-center">
+                  <div className="space-y-3 w-full">
+                    <span className="text-[11px] font-semibold uppercase tracking-wider text-cyan-400/90">
+                      Prévia no Cabeçalho
+                    </span>
+                    <div className="mx-auto flex items-center gap-3 rounded-xl border border-zinc-800 bg-zinc-950 px-3.5 py-2.5 shadow-md justify-center">
+                      {appLogo ? (
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-cyan-500/40 bg-zinc-900/90 p-1 shadow-sm">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={appLogo}
+                            alt="Logo do Programa"
+                            className="max-h-full max-w-full object-contain"
+                          />
+                        </div>
+                      ) : (
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-cyan-500/40 bg-gradient-to-br from-cyan-950 via-zinc-900 to-zinc-950 text-cyan-400 shadow-sm">
+                          <span className="font-mono text-xl font-black tracking-tight text-cyan-400 drop-shadow-[0_0_8px_rgba(6,182,212,0.6)]">
+                            M
+                          </span>
+                        </div>
+                      )}
+                      <div className="text-left min-w-0">
+                        <span className="block truncate text-xs font-bold text-zinc-100">
+                          {appName || 'ListaPro Industrial'}
+                        </span>
+                        <span className="text-[10px] text-zinc-400">v1.0</span>
+                      </div>
+                    </div>
+
+                    <span className="inline-block rounded-md bg-cyan-950/80 px-2 py-0.5 font-mono text-[10px] font-semibold text-cyan-300 border border-cyan-500/30">
+                      {appLogo ? 'Logo Customizado Ativo' : 'Monograma [M] Ativo'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Upload & Actions for App Logo */}
+                <div className="sm:col-span-2 flex flex-col justify-center space-y-4">
+                  <div>
+                    <label className="mb-1 block text-xs font-semibold text-zinc-200">
+                      Nome do Programa / Sistema
+                    </label>
+                    <input
+                      type="text"
+                      value={appName}
+                      onChange={(e) => setAppName(e.target.value)}
+                      placeholder="Ex: ListaPro Industrial ou Metalúrgica Silva"
+                      className="w-full rounded-xl border border-zinc-800 bg-zinc-900 px-3.5 py-2.5 text-xs text-zinc-100 outline-none transition focus:border-cyan-500"
+                    />
+                    <p className="mt-1 text-[11px] text-zinc-400">
+                      Título exibido ao lado do logo na barra superior do software.
+                    </p>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="block text-xs font-semibold text-zinc-200">
+                      Arquivo de Imagem para o Logo do Programa
+                    </label>
+                    <p className="text-[11px] text-zinc-400">
+                      Formatos suportados: PNG, JPG, SVG ou WEBP (até 3MB). Fundo transparente recomendado.
+                    </p>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2.5">
+                    <label
+                      htmlFor="app-logo-input"
+                      className="cursor-pointer inline-flex items-center gap-2 rounded-xl bg-cyan-500 px-4 py-2 text-xs font-bold text-zinc-950 shadow-md transition hover:bg-cyan-400"
+                    >
+                      <Upload className="h-4 w-4" />
+                      <span>{appLogo ? 'Trocar Logo do Programa' : 'Carregar Logo do Programa'}</span>
+                      <input
+                        id="app-logo-input"
+                        type="file"
+                        accept="image/png, image/jpeg, image/jpg, image/svg+xml, image/webp"
+                        onChange={handleAppLogoUpload}
+                        className="hidden"
+                      />
+                    </label>
+
+                    {appLogo && (
+                      <button
+                        type="button"
+                        onClick={handleResetAppLogo}
+                        className="inline-flex items-center gap-1.5 rounded-xl border border-zinc-700 bg-zinc-800 px-3 py-2 text-xs font-medium text-zinc-300 transition hover:bg-zinc-700 hover:text-white"
+                      >
+                        <RotateCcw className="h-3.5 w-3.5 text-cyan-400" />
+                        <span>Restaurar Monograma &quot;M&quot;</span>
+                      </button>
+                    )}
+
+                    {companyLogo && !appLogo && (
+                      <button
+                        type="button"
+                        onClick={() => setAppLogo(companyLogo)}
+                        className="inline-flex items-center gap-1.5 rounded-xl border border-cyan-500/30 bg-cyan-950/40 px-3 py-2 text-xs font-medium text-cyan-300 transition hover:bg-cyan-900/50"
+                      >
+                        <Sparkles className="h-3.5 w-3.5 text-cyan-400" />
+                        <span>Usar mesmo Logo da Empresa</span>
+                      </button>
+                    )}
+                  </div>
+
+                  {appLogoError && (
+                    <p className="text-xs font-medium text-red-400 flex items-center gap-1.5">
+                      <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                      <span>{appLogoError}</span>
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* 2. SEÇÃO: LOGOTIPO DA EMPRESA (RELATÓRIOS PDF / EXPORTAÇÃO) */}
             <div className="rounded-2xl border border-zinc-800 bg-zinc-950 p-6 shadow-xl sm:p-7">
               <div className="flex items-center gap-2.5 border-b border-zinc-800 pb-3">
                 <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-cyan-500/10 text-cyan-400">
                   <ImageIcon className="h-4 w-4" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-zinc-100">Logotipo da Empresa</h3>
+                  <h3 className="text-sm font-bold text-zinc-100">Logotipo da Empresa (Relatórios PDF & Exportações)</h3>
                   <p className="text-xs text-zinc-400">
-                    O logotipo será exibido automaticamente no cabeçalho dos relatórios PDF e exportações
+                    O logotipo será exibido automaticamente no cabeçalho dos relatórios PDF e orçamentos exportados
                   </p>
                 </div>
               </div>
@@ -429,7 +604,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                         />
                       </div>
                       <span className="inline-block rounded-md bg-emerald-950/80 px-2 py-0.5 font-mono text-[10px] font-semibold text-emerald-400 border border-emerald-500/20">
-                        Logotipo Ativo
+                        Logotipo Ativo nos Relatórios
                       </span>
                     </div>
                   ) : (
@@ -447,7 +622,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                 <div className="sm:col-span-2 flex flex-col justify-center space-y-3">
                   <div className="space-y-1">
                     <label className="block text-xs font-semibold text-zinc-200">
-                      Selecionar Arquivo de Imagem
+                      Selecionar Arquivo de Imagem da Empresa
                     </label>
                     <p className="text-[11px] text-zinc-400 leading-relaxed">
                       Recomendamos imagem com fundo transparente (formato PNG) para obter a melhor qualidade visual nos relatórios e orçamentos.
@@ -460,7 +635,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                       className="cursor-pointer inline-flex items-center gap-2 rounded-xl bg-cyan-500 px-4 py-2.5 text-xs font-semibold text-zinc-950 shadow-md transition hover:bg-cyan-400"
                     >
                       <Upload className="h-4 w-4" />
-                      <span>{companyLogo ? 'Trocar Logotipo' : 'Carregar Logotipo'}</span>
+                      <span>{companyLogo ? 'Trocar Logotipo da Empresa' : 'Carregar Logotipo da Empresa'}</span>
                       <input
                         id="company-logo-input"
                         type="file"
@@ -478,6 +653,17 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                       >
                         <Trash2 className="h-3.5 w-3.5" />
                         <span>Remover Logo</span>
+                      </button>
+                    )}
+
+                    {companyLogo && !appLogo && (
+                      <button
+                        type="button"
+                        onClick={() => setAppLogo(companyLogo)}
+                        className="inline-flex items-center gap-1.5 rounded-xl border border-cyan-500/30 bg-cyan-950/40 px-3.5 py-2.5 text-xs font-medium text-cyan-300 transition hover:bg-cyan-900/50"
+                      >
+                        <Sparkles className="h-3.5 w-3.5 text-cyan-400" />
+                        <span>Aplicar também como Logo do Programa</span>
                       </button>
                     )}
                   </div>

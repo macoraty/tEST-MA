@@ -1,14 +1,12 @@
 'use client';
 
 import React from 'react';
-import { ActiveTab } from '@/lib/types';
+import { ActiveTab, AppSettings } from '@/lib/types';
 import {
   ClipboardList,
   PlusCircle,
   Package,
   Settings,
-  Layers,
-  Wrench,
 } from 'lucide-react';
 
 interface NavbarProps {
@@ -17,6 +15,7 @@ interface NavbarProps {
   listsCount: number;
   catalogCount: number;
   onOpenNewListModal: () => void;
+  settings?: AppSettings;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -25,19 +24,42 @@ export const Navbar: React.FC<NavbarProps> = ({
   listsCount,
   catalogCount,
   onOpenNewListModal,
+  settings,
 }) => {
+  const appName = settings?.appName?.trim() || 'ListaPro Industrial';
+  const appLogo = settings?.appLogo;
+
   return (
     <header className="sticky top-0 z-40 border-b border-zinc-800/80 bg-zinc-950/90 backdrop-blur-md">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6">
         {/* Brand / Logo */}
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-zinc-700/60 bg-gradient-to-br from-zinc-900 via-zinc-800 to-zinc-900 text-cyan-400 shadow-md">
-            <Wrench className="h-5 w-5" />
-          </div>
+          {appLogo ? (
+            <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl border border-cyan-500/40 bg-zinc-900/90 p-1 shadow-md shadow-cyan-950/50">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={appLogo}
+                alt={appName}
+                className="max-h-full max-w-full object-contain"
+              />
+            </div>
+          ) : (
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-cyan-500/40 bg-gradient-to-br from-cyan-950 via-zinc-900 to-zinc-950 text-cyan-400 shadow-md shadow-cyan-950/50">
+              <span className="font-mono text-xl font-black tracking-tight text-cyan-400 drop-shadow-[0_0_8px_rgba(6,182,212,0.6)]">
+                M
+              </span>
+            </div>
+          )}
           <div>
             <div className="flex items-center gap-2">
               <span className="font-semibold tracking-tight text-zinc-100 sm:text-lg">
-                Lista<span className="text-cyan-400">Pro</span> Industrial
+                {appName === 'ListaPro Industrial' ? (
+                  <>
+                    Lista<span className="text-cyan-400">Pro</span> Industrial
+                  </>
+                ) : (
+                  appName
+                )}
               </span>
               <span className="rounded border border-zinc-800 bg-zinc-900 px-1.5 py-0.5 text-[10px] font-medium tracking-wide text-zinc-400">
                 v1.0
