@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   AppSettings,
   CatalogItem,
@@ -10,6 +10,7 @@ import {
 } from '@/lib/types';
 import { getGroupPrefix } from '@/lib/codeUtils';
 import { generateSamplePDF, generateSampleExcel } from '@/lib/exportUtils';
+import { optimizeImageForStorage } from '@/lib/imageUtils';
 import {
   Settings,
   Layers,
@@ -43,6 +44,7 @@ import {
   FileCheck,
   Briefcase,
   Wrench,
+  Loader2,
 } from 'lucide-react';
 
 interface SettingsViewProps {
@@ -83,6 +85,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   const [appName, setAppName] = useState(settings.appName || 'ListaPro Industrial');
   const [appLogo, setAppLogo] = useState(settings.appLogo || '');
   const [appLogoError, setAppLogoError] = useState<string | null>(null);
+  const [isProcessingAppLogo, setIsProcessingAppLogo] = useState(false);
 
   // Editable company settings
   const [companyName, setCompanyName] = useState(settings.companyName || '');
@@ -94,6 +97,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   const [defaultResponsible, setDefaultResponsible] = useState(settings.defaultResponsible || '');
   const [currencySymbol, setCurrencySymbol] = useState(settings.currencySymbol || 'R$');
   const [whatsAppTemplate, setWhatsAppTemplate] = useState(settings.whatsAppTemplate || '');
+  const [isProcessingCompanyLogo, setIsProcessingCompanyLogo] = useState(false);
 
   // Template settings
   const [pdfTemplate, setPdfTemplate] = useState<PDFTemplateType>(
@@ -140,82 +144,51 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   const [savedFeedback, setSavedFeedback] = useState(false);
   const [importStatus, setImportStatus] = useState<string | null>(null);
   const [logoError, setLogoError] = useState<string | null>(null);
+  const feedbackTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Code Regeneration state & confirmation modal
   const [isRegenerateModalOpen, setIsRegenerateModalOpen] = useState(false);
   const [codeRegenFeedback, setCodeRegenFeedback] = useState<string | null>(null);
 
-  // Program Logo upload handler
-  const handleAppLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setAppLogoError(null);
-    const file = e.target.files?.[0];
-    if (!file) return;
+  // Keep ref updated safely in useEffect
+  const latestStateRef = useRef({
+    appName,
+    appLogo,
+    companyName,
+    companyLogo,
+    companyPhone,
+    companyEmail,
+    companyCnpj,
+    companyAddress,
+    defaultResponsible,
+    currencySymbol,
+    whatsAppTemplate,
+    pdfTemplate,
+    pdfThemeColor,
+    pdfShowLogo,
+    pdfShowPrices,
+    pdfShowWeights,
+    pdfShowSignatures,
+    pdfShowNotes,
+    pdfFooterText,
+    excelTemplate,
+    excelIncludeSummary,
+    excelIncludeHeader,
+    excelShowPrices,
+    excelShowWeights,
+  });
 
-    if (!file.type.startsWith('image/')) {
-      setAppLogoError('Por favor, selecione um arquivo de imagem válido (PNG, JPG, SVG, WEBP).');
-      return;
-    }
+  const settingsRef = useRef(settings);
+  const onSaveSettingsRef = useRef(onSaveSettings);
 
-    if (file.size > 3 * 1024 * 1024) {
-      setAppLogoError('A imagem deve ter no máximo 3MB.');
-      return;
-    }
+  useEffect(() => {
+    settingsRef.current = settings;
+    onSaveSettingsRef.current = onSaveSettings;
+  }, [settings, onSaveSettings]);
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const base64Data = event.target?.result as string;
-      setAppLogo(base64Data);
-    };
-    reader.onerror = () => {
-      setAppLogoError('Erro ao ler a imagem. Tente novamente.');
-    };
-    reader.readAsDataURL(file);
-    e.target.value = '';
-  };
-
-  const handleResetAppLogo = () => {
-    setAppLogo('');
-    setAppLogoError(null);
-  };
-
-  // Company Logo upload handler
-  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setLogoError(null);
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (!file.type.startsWith('image/')) {
-      setLogoError('Por favor, selecione um arquivo de imagem válido (PNG, JPG, SVG, WEBP).');
-      return;
-    }
-
-    if (file.size > 3 * 1024 * 1024) {
-      setLogoError('A imagem deve ter no máximo 3MB.');
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const base64Data = event.target?.result as string;
-      setCompanyLogo(base64Data);
-    };
-    reader.onerror = () => {
-      setLogoError('Erro ao ler a imagem. Tente novamente.');
-    };
-    reader.readAsDataURL(file);
-    e.target.value = '';
-  };
-
-  const handleRemoveLogo = () => {
-    setCompanyLogo('');
-    setLogoError(null);
-  };
-
-  const handleSaveAllSettings = (e?: React.FormEvent) => {
-    if (e) e.preventDefault();
-    const updatedSettings: AppSettings = {
-      ...settings,
-      appName: appName.trim() || 'ListaPro Industrial',
+  useEffect(() => {
+    latestStateRef.current = {
+      appName,
       appLogo,
       companyName,
       companyLogo,
@@ -226,8 +199,6 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
       defaultResponsible,
       currencySymbol,
       whatsAppTemplate,
-
-      // PDF
       pdfTemplate,
       pdfThemeColor,
       pdfShowLogo,
@@ -236,18 +207,163 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
       pdfShowSignatures,
       pdfShowNotes,
       pdfFooterText,
-
-      // Excel
       excelTemplate,
       excelIncludeSummary,
       excelIncludeHeader,
       excelShowPrices,
       excelShowWeights,
     };
+  }, [
+    appName,
+    appLogo,
+    companyName,
+    companyLogo,
+    companyPhone,
+    companyEmail,
+    companyCnpj,
+    companyAddress,
+    defaultResponsible,
+    currencySymbol,
+    whatsAppTemplate,
+    pdfTemplate,
+    pdfThemeColor,
+    pdfShowLogo,
+    pdfShowPrices,
+    pdfShowWeights,
+    pdfShowSignatures,
+    pdfShowNotes,
+    pdfFooterText,
+    excelTemplate,
+    excelIncludeSummary,
+    excelIncludeHeader,
+    excelShowPrices,
+    excelShowWeights,
+  ]);
 
-    onSaveSettings(updatedSettings);
+  // Helper to commit settings to parent & persistence
+  const commitSettings = (partialOverrides: Partial<AppSettings> = {}) => {
+    const updated: AppSettings = {
+      ...settingsRef.current,
+      appName: (partialOverrides.appName !== undefined ? partialOverrides.appName : appName).trim() || 'ListaPro Industrial',
+      appLogo: partialOverrides.appLogo !== undefined ? partialOverrides.appLogo : appLogo,
+      companyName: partialOverrides.companyName !== undefined ? partialOverrides.companyName : companyName,
+      companyLogo: partialOverrides.companyLogo !== undefined ? partialOverrides.companyLogo : companyLogo,
+      companyPhone: partialOverrides.companyPhone !== undefined ? partialOverrides.companyPhone : companyPhone,
+      companyEmail: partialOverrides.companyEmail !== undefined ? partialOverrides.companyEmail : companyEmail,
+      companyCnpj: partialOverrides.companyCnpj !== undefined ? partialOverrides.companyCnpj : companyCnpj,
+      companyAddress: partialOverrides.companyAddress !== undefined ? partialOverrides.companyAddress : companyAddress,
+      defaultResponsible: partialOverrides.defaultResponsible !== undefined ? partialOverrides.defaultResponsible : defaultResponsible,
+      currencySymbol: partialOverrides.currencySymbol !== undefined ? partialOverrides.currencySymbol : currencySymbol,
+      whatsAppTemplate: partialOverrides.whatsAppTemplate !== undefined ? partialOverrides.whatsAppTemplate : whatsAppTemplate,
+
+      // PDF
+      pdfTemplate: partialOverrides.pdfTemplate !== undefined ? partialOverrides.pdfTemplate : pdfTemplate,
+      pdfThemeColor: partialOverrides.pdfThemeColor !== undefined ? partialOverrides.pdfThemeColor : pdfThemeColor,
+      pdfShowLogo: partialOverrides.pdfShowLogo !== undefined ? partialOverrides.pdfShowLogo : pdfShowLogo,
+      pdfShowPrices: partialOverrides.pdfShowPrices !== undefined ? partialOverrides.pdfShowPrices : pdfShowPrices,
+      pdfShowWeights: partialOverrides.pdfShowWeights !== undefined ? partialOverrides.pdfShowWeights : pdfShowWeights,
+      pdfShowSignatures: partialOverrides.pdfShowSignatures !== undefined ? partialOverrides.pdfShowSignatures : pdfShowSignatures,
+      pdfShowNotes: partialOverrides.pdfShowNotes !== undefined ? partialOverrides.pdfShowNotes : pdfShowNotes,
+      pdfFooterText: partialOverrides.pdfFooterText !== undefined ? partialOverrides.pdfFooterText : pdfFooterText,
+
+      // Excel
+      excelTemplate: partialOverrides.excelTemplate !== undefined ? partialOverrides.excelTemplate : excelTemplate,
+      excelIncludeSummary: partialOverrides.excelIncludeSummary !== undefined ? partialOverrides.excelIncludeSummary : excelIncludeSummary,
+      excelIncludeHeader: partialOverrides.excelIncludeHeader !== undefined ? partialOverrides.excelIncludeHeader : excelIncludeHeader,
+      excelShowPrices: partialOverrides.excelShowPrices !== undefined ? partialOverrides.excelShowPrices : excelShowPrices,
+      excelShowWeights: partialOverrides.excelShowWeights !== undefined ? partialOverrides.excelShowWeights : excelShowWeights,
+    };
+
+    onSaveSettingsRef.current(updated);
     setSavedFeedback(true);
-    setTimeout(() => setSavedFeedback(false), 2500);
+    if (feedbackTimerRef.current) clearTimeout(feedbackTimerRef.current);
+    feedbackTimerRef.current = setTimeout(() => setSavedFeedback(false), 3000);
+    return updated;
+  };
+
+  // Auto-commit on unmount to make sure nothing is lost when clicking tabs
+  useEffect(() => {
+    return () => {
+      const current = latestStateRef.current;
+      onSaveSettingsRef.current({
+        ...settingsRef.current,
+        ...current,
+        appName: current.appName.trim() || 'ListaPro Industrial',
+      });
+    };
+  }, []);
+
+  // Program Logo upload handler with auto-compression and immediate save
+  const handleAppLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    setAppLogoError(null);
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      setAppLogoError('Por favor, selecione um arquivo de imagem válido (PNG, JPG, SVG, WEBP).');
+      return;
+    }
+
+    try {
+      setIsProcessingAppLogo(true);
+      const optimizedBase64 = await optimizeImageForStorage(file, 480, 0.9);
+      setAppLogo(optimizedBase64);
+      commitSettings({ appLogo: optimizedBase64 });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Erro ao processar imagem.';
+      setAppLogoError(msg);
+    } finally {
+      setIsProcessingAppLogo(false);
+      e.target.value = '';
+    }
+  };
+
+  const handleResetAppLogo = () => {
+    setAppLogo('');
+    setAppLogoError(null);
+    commitSettings({ appLogo: '' });
+  };
+
+  // Company Logo upload handler with auto-compression and immediate save
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    setLogoError(null);
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      setLogoError('Por favor, selecione um arquivo de imagem válido (PNG, JPG, SVG, WEBP).');
+      return;
+    }
+
+    try {
+      setIsProcessingCompanyLogo(true);
+      const optimizedBase64 = await optimizeImageForStorage(file, 500, 0.9);
+      setCompanyLogo(optimizedBase64);
+      commitSettings({ companyLogo: optimizedBase64 });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Erro ao processar imagem.';
+      setLogoError(msg);
+    } finally {
+      setIsProcessingCompanyLogo(false);
+      e.target.value = '';
+    }
+  };
+
+  const handleRemoveLogo = () => {
+    setCompanyLogo('');
+    setLogoError(null);
+    commitSettings({ companyLogo: '' });
+  };
+
+  const handleApplyCompanyLogoToApp = () => {
+    if (!companyLogo) return;
+    setAppLogo(companyLogo);
+    commitSettings({ appLogo: companyLogo });
+  };
+
+  const handleSaveAllSettings = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    commitSettings();
   };
 
   const handleAddGroupSubmit = (e: React.FormEvent) => {
@@ -510,6 +626,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                       type="text"
                       value={appName}
                       onChange={(e) => setAppName(e.target.value)}
+                      onBlur={() => commitSettings()}
                       placeholder="Ex: ListaPro Industrial ou Metalúrgica Silva"
                       className="w-full rounded-xl border border-zinc-800 bg-zinc-900 px-3.5 py-2.5 text-xs text-zinc-100 outline-none transition focus:border-cyan-500"
                     />
@@ -530,15 +647,28 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                   <div className="flex flex-wrap items-center gap-2.5">
                     <label
                       htmlFor="app-logo-input"
-                      className="cursor-pointer inline-flex items-center gap-2 rounded-xl bg-cyan-500 px-4 py-2 text-xs font-bold text-zinc-950 shadow-md transition hover:bg-cyan-400"
+                      className={`cursor-pointer inline-flex items-center gap-2 rounded-xl bg-cyan-500 px-4 py-2 text-xs font-bold text-zinc-950 shadow-md transition hover:bg-cyan-400 ${
+                        isProcessingAppLogo ? 'opacity-70 pointer-events-none' : ''
+                      }`}
                     >
-                      <Upload className="h-4 w-4" />
-                      <span>{appLogo ? 'Trocar Logo do Programa' : 'Carregar Logo do Programa'}</span>
+                      {isProcessingAppLogo ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Upload className="h-4 w-4" />
+                      )}
+                      <span>
+                        {isProcessingAppLogo
+                          ? 'Otimizando Imagem...'
+                          : appLogo
+                          ? 'Trocar Logo do Programa'
+                          : 'Carregar Logo do Programa'}
+                      </span>
                       <input
                         id="app-logo-input"
                         type="file"
                         accept="image/png, image/jpeg, image/jpg, image/svg+xml, image/webp"
                         onChange={handleAppLogoUpload}
+                        disabled={isProcessingAppLogo}
                         className="hidden"
                       />
                     </label>
@@ -557,7 +687,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                     {companyLogo && !appLogo && (
                       <button
                         type="button"
-                        onClick={() => setAppLogo(companyLogo)}
+                        onClick={handleApplyCompanyLogoToApp}
                         className="inline-flex items-center gap-1.5 rounded-xl border border-cyan-500/30 bg-cyan-950/40 px-3 py-2 text-xs font-medium text-cyan-300 transition hover:bg-cyan-900/50"
                       >
                         <Sparkles className="h-3.5 w-3.5 text-cyan-400" />
@@ -632,15 +762,28 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                   <div className="flex flex-wrap items-center gap-3 pt-2">
                     <label
                       htmlFor="company-logo-input"
-                      className="cursor-pointer inline-flex items-center gap-2 rounded-xl bg-cyan-500 px-4 py-2.5 text-xs font-semibold text-zinc-950 shadow-md transition hover:bg-cyan-400"
+                      className={`cursor-pointer inline-flex items-center gap-2 rounded-xl bg-cyan-500 px-4 py-2.5 text-xs font-semibold text-zinc-950 shadow-md transition hover:bg-cyan-400 ${
+                        isProcessingCompanyLogo ? 'opacity-70 pointer-events-none' : ''
+                      }`}
                     >
-                      <Upload className="h-4 w-4" />
-                      <span>{companyLogo ? 'Trocar Logotipo da Empresa' : 'Carregar Logotipo da Empresa'}</span>
+                      {isProcessingCompanyLogo ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Upload className="h-4 w-4" />
+                      )}
+                      <span>
+                        {isProcessingCompanyLogo
+                          ? 'Otimizando Imagem...'
+                          : companyLogo
+                          ? 'Trocar Logotipo da Empresa'
+                          : 'Carregar Logotipo da Empresa'}
+                      </span>
                       <input
                         id="company-logo-input"
                         type="file"
                         accept="image/png, image/jpeg, image/jpg, image/svg+xml, image/webp"
                         onChange={handleLogoUpload}
+                        disabled={isProcessingCompanyLogo}
                         className="hidden"
                       />
                     </label>
@@ -659,7 +802,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                     {companyLogo && !appLogo && (
                       <button
                         type="button"
-                        onClick={() => setAppLogo(companyLogo)}
+                        onClick={handleApplyCompanyLogoToApp}
                         className="inline-flex items-center gap-1.5 rounded-xl border border-cyan-500/30 bg-cyan-950/40 px-3.5 py-2.5 text-xs font-medium text-cyan-300 transition hover:bg-cyan-900/50"
                       >
                         <Sparkles className="h-3.5 w-3.5 text-cyan-400" />
@@ -700,6 +843,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                     type="text"
                     value={companyName}
                     onChange={(e) => setCompanyName(e.target.value)}
+                    onBlur={() => commitSettings()}
                     placeholder="Ex: INDÚSTRIA METALÚRGICA VANGUARDA LTDA"
                     className="w-full rounded-xl border border-zinc-800 bg-zinc-900 px-3.5 py-2.5 text-xs text-zinc-100 outline-none transition focus:border-cyan-500"
                   />
@@ -715,6 +859,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                     type="text"
                     value={companyCnpj}
                     onChange={(e) => setCompanyCnpj(e.target.value)}
+                    onBlur={() => commitSettings()}
                     placeholder="00.000.000/0001-00"
                     className="w-full rounded-xl border border-zinc-800 bg-zinc-900 px-3.5 py-2.5 text-xs text-zinc-100 outline-none transition focus:border-cyan-500"
                   />
@@ -730,6 +875,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                     type="text"
                     value={companyPhone}
                     onChange={(e) => setCompanyPhone(e.target.value)}
+                    onBlur={() => commitSettings()}
                     placeholder="(00) 00000-0000"
                     className="w-full rounded-xl border border-zinc-800 bg-zinc-900 px-3.5 py-2.5 text-xs text-zinc-100 outline-none transition focus:border-cyan-500"
                   />
@@ -745,6 +891,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                     type="email"
                     value={companyEmail}
                     onChange={(e) => setCompanyEmail(e.target.value)}
+                    onBlur={() => commitSettings()}
                     placeholder="contato@empresa.com.br"
                     className="w-full rounded-xl border border-zinc-800 bg-zinc-900 px-3.5 py-2.5 text-xs text-zinc-100 outline-none transition focus:border-cyan-500"
                   />
@@ -759,6 +906,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                     type="text"
                     value={companyAddress}
                     onChange={(e) => setCompanyAddress(e.target.value)}
+                    onBlur={() => commitSettings()}
                     placeholder="Av. Industrial, 1500 - Distrito Industrial - Cidade/UF"
                     className="w-full rounded-xl border border-zinc-800 bg-zinc-900 px-3.5 py-2.5 text-xs text-zinc-100 outline-none transition focus:border-cyan-500"
                   />
@@ -773,6 +921,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                     type="text"
                     value={defaultResponsible}
                     onChange={(e) => setDefaultResponsible(e.target.value)}
+                    onBlur={() => commitSettings()}
                     placeholder="Ex: Engenharia Mecânica / PCM"
                     className="w-full rounded-xl border border-zinc-800 bg-zinc-900 px-3.5 py-2.5 text-xs text-zinc-100 outline-none transition focus:border-cyan-500"
                   />
@@ -788,6 +937,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                     type="text"
                     value={currencySymbol}
                     onChange={(e) => setCurrencySymbol(e.target.value)}
+                    onBlur={() => commitSettings()}
                     placeholder="R$"
                     className="w-full rounded-xl border border-zinc-800 bg-zinc-900 px-3.5 py-2.5 text-xs text-zinc-100 outline-none transition focus:border-cyan-500"
                   />

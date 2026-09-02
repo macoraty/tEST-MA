@@ -88,11 +88,15 @@ function getSettingsSnapshot(): AppSettings {
   if (cachedSettings) return cachedSettings;
   if (typeof window === 'undefined') return STATIC_SETTINGS;
   try {
-    const saved = localStorage.getItem(STORAGE_KEYS.SETTINGS);
+    let saved = localStorage.getItem(STORAGE_KEYS.SETTINGS);
+    if (!saved) {
+      saved = sessionStorage.getItem(STORAGE_KEYS.SETTINGS);
+    }
     if (saved) {
       const parsed = JSON.parse(saved);
-      cachedSettings = parsed;
-      return parsed;
+      const merged: AppSettings = { ...STATIC_SETTINGS, ...parsed };
+      cachedSettings = merged;
+      return merged;
     }
     localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(STATIC_SETTINGS));
   } catch (e) {
@@ -267,7 +271,12 @@ export function useIndustrialStorage() {
     try {
       localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(newSettings));
     } catch (e) {
-      console.error('Error saving settings:', e);
+      console.error('Error saving settings to localStorage:', e);
+      try {
+        sessionStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(newSettings));
+      } catch (err) {
+        console.error('Error saving settings to sessionStorage:', err);
+      }
     }
     notify();
   }, []);
