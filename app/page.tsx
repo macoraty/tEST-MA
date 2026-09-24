@@ -27,6 +27,7 @@ export default function Home() {
     saveList,
     deleteList,
     duplicateList,
+    saveCatalog,
     saveCatalogItem,
     deleteCatalogItem,
     resetCatalogToDefault,
@@ -347,6 +348,8 @@ export default function Home() {
               onEditItem={handleEditCatalogItem}
               onDeleteItem={deleteCatalogItem}
               onResetToDefault={resetCatalogToDefault}
+              onSaveCatalog={saveCatalog}
+              onSaveSettings={saveSettings}
             />
           ) : (
             /* 5. SETTINGS VIEW */
@@ -354,6 +357,8 @@ export default function Home() {
               settings={settings}
               catalog={catalog}
               onSaveSettings={saveSettings}
+              onSaveCatalog={saveCatalog}
+              onNavigateToCatalog={() => setActiveTab('catalog')}
               onAddGroup={addGroup}
               onDeleteGroup={deleteGroup}
               onAddUnit={addUnit}

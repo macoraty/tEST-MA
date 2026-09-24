@@ -46,11 +46,14 @@ import {
   Wrench,
   Loader2,
 } from 'lucide-react';
+import { ExcelCatalogImportSection } from './ExcelCatalogImportSection';
 
 interface SettingsViewProps {
   settings: AppSettings;
   catalog: CatalogItem[];
   onSaveSettings: (settings: AppSettings) => void;
+  onSaveCatalog: (catalog: CatalogItem[]) => void;
+  onNavigateToCatalog?: () => void;
   onAddGroup: (group: string) => void;
   onDeleteGroup: (group: string) => void;
   onAddUnit: (unit: string) => void;
@@ -65,6 +68,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   settings,
   catalog,
   onSaveSettings,
+  onSaveCatalog,
+  onNavigateToCatalog,
   onAddGroup,
   onDeleteGroup,
   onAddUnit,
@@ -75,7 +80,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   onRegenerateAllCodes,
 }) => {
   const [activeSubTab, setActiveSubTab] = useState<
-    'parameters' | 'codes' | 'company' | 'templates' | 'whatsapp' | 'backup'
+    'parameters' | 'codes' | 'company' | 'templates' | 'whatsapp' | 'backup' | 'excel-import'
   >('company');
 
   const [newGroupInput, setNewGroupInput] = useState('');
@@ -500,6 +505,19 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
         >
           <Palette className="h-4 w-4" />
           <span>Templates PDF & Excel</span>
+        </button>
+
+        <button
+          id="tab-btn-excel-import"
+          onClick={() => setActiveSubTab('excel-import')}
+          className={`flex items-center gap-2 rounded-xl px-3.5 py-2 text-xs font-semibold transition ${
+            activeSubTab === 'excel-import'
+              ? 'border border-emerald-500/40 bg-emerald-500/10 text-emerald-300 shadow-sm ring-1 ring-emerald-500/30'
+              : 'text-zinc-400 hover:bg-zinc-900 hover:text-zinc-200'
+          }`}
+        >
+          <FileSpreadsheet className="h-4 w-4 text-emerald-400" />
+          <span>Importar Excel (Catálogo)</span>
         </button>
 
         <button
@@ -1632,9 +1650,60 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
         </div>
       )}
 
+      {/* SUB-TAB: Excel Import for Catalog */}
+      {activeSubTab === 'excel-import' && (
+        <div className="max-w-4xl space-y-6">
+          <ExcelCatalogImportSection
+            catalog={catalog}
+            settings={settings}
+            onSaveCatalog={onSaveCatalog}
+            onSaveSettings={onSaveSettings}
+            onNavigateToCatalog={onNavigateToCatalog}
+          />
+        </div>
+      )}
+
       {/* SUB-TAB: Backup & Database */}
       {activeSubTab === 'backup' && (
         <div className="max-w-3xl space-y-6">
+          {/* Excel Catalog Import Box */}
+          <div className="rounded-2xl border border-emerald-500/40 bg-gradient-to-b from-emerald-950/20 via-zinc-950 to-zinc-950 p-6 shadow-xl sm:p-8">
+            <div className="flex items-start justify-between border-b border-zinc-800 pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-400">
+                  <FileSpreadsheet className="h-4 w-4" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-zinc-100">
+                    Importação de Planilha Excel para o Catálogo
+                  </h3>
+                  <p className="text-xs text-zinc-400">
+                    Carregue arquivos .xlsx, .xls ou .csv com descrições, grupos, códigos e custos para o catálogo geral
+                  </p>
+                </div>
+              </div>
+              <span className="rounded bg-emerald-500/20 px-2 py-0.5 text-[10px] font-semibold text-emerald-300 border border-emerald-500/30">
+                Excel / CSV
+              </span>
+            </div>
+
+            <p className="mt-3 text-xs text-zinc-300 leading-relaxed">
+              Deseja cadastrar ou atualizar materiais e insumos industriais em lote a partir de uma planilha Excel? O sistema detecta colunas automaticamente, calcula prefixos e atualiza os custos.
+            </p>
+
+            <div className="mt-5 flex flex-wrap items-center gap-3">
+              <button
+                type="button"
+                id="btn-goto-excel-import"
+                onClick={() => setActiveSubTab('excel-import')}
+                className="flex items-center gap-2 rounded-xl bg-emerald-500 px-5 py-2.5 text-xs font-bold text-zinc-950 shadow-lg shadow-emerald-950/50 transition hover:bg-emerald-400"
+              >
+                <FileSpreadsheet className="h-4 w-4" />
+                <span>Abrir Importador de Excel do Catálogo</span>
+              </button>
+            </div>
+          </div>
+
           {/* Backup Box */}
           <div className="rounded-2xl border border-zinc-800 bg-zinc-950 p-6 shadow-xl sm:p-8">
             <div className="border-b border-zinc-800 pb-3">

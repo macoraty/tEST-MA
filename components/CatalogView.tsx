@@ -20,7 +20,9 @@ import {
   DollarSign,
   Scale,
   Check,
+  Upload,
 } from 'lucide-react';
+import { ExcelCatalogImportModal } from './ExcelCatalogImportModal';
 
 interface CatalogViewProps {
   catalog: CatalogItem[];
@@ -29,6 +31,8 @@ interface CatalogViewProps {
   onEditItem: (item: CatalogItem) => void;
   onDeleteItem: (id: string) => void;
   onResetToDefault: () => void;
+  onSaveCatalog?: (newCatalog: CatalogItem[]) => void;
+  onSaveSettings?: (newSettings: AppSettings) => void;
 }
 
 type CatalogSortField = 'code' | 'description' | 'group' | 'unit' | 'cost' | 'weightBar';
@@ -40,6 +44,8 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
   onEditItem,
   onDeleteItem,
   onResetToDefault,
+  onSaveCatalog,
+  onSaveSettings,
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedGroup, setSelectedGroup] = useState('ALL');
@@ -48,6 +54,7 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
   // Sorting helper
   const handleSort = (field: CatalogSortField) => {
@@ -148,6 +155,19 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
             <FileSpreadsheet className="h-4 w-4" />
             <span>Exportar Excel</span>
           </button>
+
+          {/* Import from Excel */}
+          {onSaveCatalog && onSaveSettings && (
+            <button
+              id="btn-catalog-import-excel"
+              onClick={() => setIsImportModalOpen(true)}
+              className="flex items-center gap-1.5 rounded-xl border border-emerald-500/50 bg-emerald-500/10 px-3.5 py-2 text-xs font-semibold text-emerald-300 transition hover:bg-emerald-500/20"
+              title="Importar materiais de planilha Excel (.xlsx, .xls, .csv)"
+            >
+              <Upload className="h-4 w-4 text-emerald-400" />
+              <span>Importar Excel</span>
+            </button>
+          )}
 
           {/* Reset button */}
           <button
@@ -450,6 +470,18 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
           </table>
         </div>
       </div>
+
+      {/* Excel Catalog Import Modal */}
+      {onSaveCatalog && onSaveSettings && (
+        <ExcelCatalogImportModal
+          isOpen={isImportModalOpen}
+          onClose={() => setIsImportModalOpen(false)}
+          catalog={catalog}
+          settings={settings}
+          onSaveCatalog={onSaveCatalog}
+          onSaveSettings={onSaveSettings}
+        />
+      )}
     </div>
   );
 };
