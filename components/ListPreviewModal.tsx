@@ -23,6 +23,7 @@ import {
   Scale,
   DollarSign,
   Package,
+  ClipboardList,
 } from 'lucide-react';
 
 interface ListPreviewModalProps {
@@ -32,6 +33,7 @@ interface ListPreviewModalProps {
   settings: AppSettings;
   onEditList: (list: MaterialList) => void;
   onOpenWhatsApp: (list: MaterialList) => void;
+  onGenerateRequisition?: (list: MaterialList) => void;
 }
 
 export const ListPreviewModal: React.FC<ListPreviewModalProps> = ({
@@ -41,6 +43,7 @@ export const ListPreviewModal: React.FC<ListPreviewModalProps> = ({
   settings,
   onEditList,
   onOpenWhatsApp,
+  onGenerateRequisition,
 }) => {
   const [itemSearch, setItemSearch] = useState('');
   const [selectedGroup, setSelectedGroup] = useState('ALL');
@@ -55,6 +58,7 @@ export const ListPreviewModal: React.FC<ListPreviewModalProps> = ({
       onClose={onClose}
       onEditList={onEditList}
       onOpenWhatsApp={onOpenWhatsApp}
+      onGenerateRequisition={onGenerateRequisition}
       itemSearch={itemSearch}
       setItemSearch={setItemSearch}
       selectedGroup={selectedGroup}
@@ -69,6 +73,7 @@ interface ListPreviewModalContentProps {
   onClose: () => void;
   onEditList: (list: MaterialList) => void;
   onOpenWhatsApp: (list: MaterialList) => void;
+  onGenerateRequisition?: (list: MaterialList) => void;
   itemSearch: string;
   setItemSearch: (s: string) => void;
   selectedGroup: string;
@@ -81,6 +86,7 @@ const ListPreviewModalContent: React.FC<ListPreviewModalContentProps> = ({
   onClose,
   onEditList,
   onOpenWhatsApp,
+  onGenerateRequisition,
   itemSearch,
   setItemSearch,
   selectedGroup,
@@ -102,28 +108,36 @@ const ListPreviewModalContent: React.FC<ListPreviewModalContentProps> = ({
   // Unique groups present in this list
   const listGroups = useMemo(() => {
     const set = new Set<string>();
-    list.items.forEach((item) => {
-      if (item.group) set.add(item.group);
+    const listItems = list && Array.isArray(list.items) ? list.items : [];
+    listItems.forEach((item) => {
+      if (item?.group) set.add(item.group);
     });
     return Array.from(set).sort();
-  }, [list.items]);
+  }, [list]);
 
   // Filtered items
   const filteredItems = useMemo(() => {
-    const query = itemSearch.toLowerCase().trim();
-    return list.items.filter((item) => {
+    const listItems = list && Array.isArray(list.items) ? list.items : [];
+    const query = (itemSearch || '').toLowerCase().trim();
+    return listItems.filter((item) => {
+      if (!item) return false;
+      const desc = (item.description || '').toLowerCase();
+      const cd = (item.code || '').toLowerCase();
+      const grp = (item.group || '').toLowerCase();
+      const nts = (item.notes || '').toLowerCase();
+
       const matchesSearch =
         !query ||
-        item.description.toLowerCase().includes(query) ||
-        item.code.toLowerCase().includes(query) ||
-        (item.group && item.group.toLowerCase().includes(query)) ||
-        (item.notes && item.notes.toLowerCase().includes(query));
+        desc.includes(query) ||
+        cd.includes(query) ||
+        grp.includes(query) ||
+        nts.includes(query);
 
       const matchesGroup = selectedGroup === 'ALL' || item.group === selectedGroup;
 
       return matchesSearch && matchesGroup;
     });
-  }, [list.items, itemSearch, selectedGroup]);
+  }, [list, itemSearch, selectedGroup]);
 
   const handlePrint = () => {
     window.print();
@@ -218,6 +232,21 @@ const ListPreviewModalContent: React.FC<ListPreviewModalContentProps> = ({
 
           {/* Action Toolbar */}
           <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+            {onGenerateRequisition && (
+              <button
+                id="btn-preview-requisition"
+                onClick={() => {
+                  onClose();
+                  onGenerateRequisition(list);
+                }}
+                className="flex items-center gap-1.5 rounded-xl border border-amber-500/40 bg-amber-950/40 px-3 py-1.5 text-xs font-semibold text-amber-300 transition hover:bg-amber-900/50 hover:text-amber-200"
+                title="Criar Solicitação de Insumos a partir desta lista de materiais"
+              >
+                <ClipboardList className="h-3.5 w-3.5" />
+                <span>Solicitar Insumos</span>
+              </button>
+            )}
+
             <button
               id="btn-preview-whatsapp"
               onClick={() => {

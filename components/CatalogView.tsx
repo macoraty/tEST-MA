@@ -61,15 +61,23 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
 
   // Filtered and sorted catalog items
   const filteredAndSortedCatalog = useMemo(() => {
+    if (!Array.isArray(catalog)) return [];
+    const q = (searchTerm || '').trim().toLowerCase();
+
     return catalog
       .filter((item) => {
-        const q = searchTerm.toLowerCase();
+        if (!item) return false;
+        const desc = (item.description || '').toLowerCase();
+        const cd = (item.code || '').toLowerCase();
+        const grp = (item.group || '').toLowerCase();
+        const nts = (item.notes || '').toLowerCase();
+
         const matchesSearch =
           !q ||
-          item.description.toLowerCase().includes(q) ||
-          item.code.toLowerCase().includes(q) ||
-          item.group.toLowerCase().includes(q) ||
-          (item.notes && item.notes.toLowerCase().includes(q));
+          desc.includes(q) ||
+          cd.includes(q) ||
+          grp.includes(q) ||
+          nts.includes(q);
 
         const matchesGroup = selectedGroup === 'ALL' || item.group === selectedGroup;
         const matchesUnit = selectedUnit === 'ALL' || item.unit === selectedUnit;
@@ -81,17 +89,17 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
         let valB: string | number = '';
 
         if (sortField === 'code') {
-          valA = a.code.toLowerCase();
-          valB = b.code.toLowerCase();
+          valA = (a.code || '').toLowerCase();
+          valB = (b.code || '').toLowerCase();
         } else if (sortField === 'description') {
-          valA = a.description.toLowerCase();
-          valB = b.description.toLowerCase();
+          valA = (a.description || '').toLowerCase();
+          valB = (b.description || '').toLowerCase();
         } else if (sortField === 'group') {
-          valA = a.group.toLowerCase();
-          valB = b.group.toLowerCase();
+          valA = (a.group || '').toLowerCase();
+          valB = (b.group || '').toLowerCase();
         } else if (sortField === 'unit') {
-          valA = a.unit.toLowerCase();
-          valB = b.unit.toLowerCase();
+          valA = (a.unit || '').toLowerCase();
+          valB = (b.unit || '').toLowerCase();
         } else if (sortField === 'cost') {
           valA = Number(a.cost) || 0;
           valB = Number(b.cost) || 0;

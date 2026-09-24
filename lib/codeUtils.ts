@@ -53,28 +53,30 @@ export function getNextCodeForGroup(groupName: string, catalog: CatalogItem[]): 
   const prefix = getGroupPrefix(groupName);
   const usedNumbers = new Set<number>();
 
-  catalog.forEach((item) => {
-    if (!item.code) return;
-    const itemCode = item.code.trim().toUpperCase();
+  if (Array.isArray(catalog)) {
+    catalog.forEach((item) => {
+      if (!item || !item.code) return;
+      const itemCode = String(item.code).trim().toUpperCase();
 
-    // If the code matches PREFIX + 4 digits
-    if (itemCode.startsWith(prefix)) {
-      const numPart = itemCode.slice(prefix.length);
-      const parsed = parseInt(numPart, 10);
-      if (!isNaN(parsed) && parsed > 0) {
-        usedNumbers.add(parsed);
-      }
-    } else if (item.group === groupName) {
-      // If code in the same group has numeric suffix
-      const match = itemCode.match(/(\d{1,4})$/);
-      if (match) {
-        const parsed = parseInt(match[1], 10);
+      // If the code matches PREFIX + 4 digits
+      if (itemCode.startsWith(prefix)) {
+        const numPart = itemCode.slice(prefix.length);
+        const parsed = parseInt(numPart, 10);
         if (!isNaN(parsed) && parsed > 0) {
           usedNumbers.add(parsed);
         }
+      } else if (item.group === groupName) {
+        // If code in the same group has numeric suffix
+        const match = itemCode.match(/(\d{1,4})$/);
+        if (match) {
+          const parsed = parseInt(match[1], 10);
+          if (!isNaN(parsed) && parsed > 0) {
+            usedNumbers.add(parsed);
+          }
+        }
       }
-    }
-  });
+    });
+  }
 
   // Find lowest positive integer not in usedNumbers
   let seq = 1;
@@ -89,10 +91,12 @@ export function getNextCodeForGroup(groupName: string, catalog: CatalogItem[]): 
  * Checks if a code is unique within the catalog (case-insensitive).
  */
 export function isCodeUnique(code: string, catalog: CatalogItem[], ignoreItemId?: string): boolean {
-  const target = code.trim().toUpperCase();
+  if (!code) return false;
+  const target = String(code).trim().toUpperCase();
   if (!target) return false;
+  if (!Array.isArray(catalog)) return true;
   return !catalog.some(
-    (item) => item.id !== ignoreItemId && item.code?.trim().toUpperCase() === target
+    (item) => item && item.id !== ignoreItemId && String(item.code || '').trim().toUpperCase() === target
   );
 }
 

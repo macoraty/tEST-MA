@@ -80,18 +80,24 @@ export const ListEditor: React.FC<ListEditorProps> = ({
 
   // Fast searchable catalog results
   const searchResults = useMemo(() => {
-    const q = searchQuery.trim().toLowerCase();
+    if (!Array.isArray(catalog)) return [];
+    const q = (searchQuery || '').trim().toLowerCase();
     if (!q && selectedGroupFilter === 'ALL') {
-      return catalog.slice(0, 12); // Show first 12 items as default suggestions
+      return catalog.filter(Boolean).slice(0, 12); // Show first 12 items as default suggestions
     }
 
     return catalog
       .filter((item) => {
+        if (!item) return false;
+        const desc = (item.description || '').toLowerCase();
+        const cd = (item.code || '').toLowerCase();
+        const grp = (item.group || '').toLowerCase();
+
         const matchesQuery =
           !q ||
-          item.description.toLowerCase().includes(q) ||
-          item.code.toLowerCase().includes(q) ||
-          item.group.toLowerCase().includes(q);
+          desc.includes(q) ||
+          cd.includes(q) ||
+          grp.includes(q);
 
         const matchesGroup = selectedGroupFilter === 'ALL' || item.group === selectedGroupFilter;
 
@@ -243,13 +249,20 @@ export const ListEditor: React.FC<ListEditorProps> = ({
 
   // Filtered and sorted table items
   const displayedItems = useMemo(() => {
+    if (!Array.isArray(items)) return [];
+    const q = (filterTableQuery || '').trim().toLowerCase();
+
     const filtered = items.filter((item) => {
-      const q = filterTableQuery.toLowerCase();
+      if (!item) return false;
+      const desc = (item.description || '').toLowerCase();
+      const cd = (item.code || '').toLowerCase();
+      const nts = (item.notes || '').toLowerCase();
+
       const matchesText =
         !q ||
-        item.description.toLowerCase().includes(q) ||
-        item.code.toLowerCase().includes(q) ||
-        (item.notes && item.notes.toLowerCase().includes(q));
+        desc.includes(q) ||
+        cd.includes(q) ||
+        nts.includes(q);
 
       const matchesGroup = filterTableGroup === 'ALL' || item.group === filterTableGroup;
       return matchesText && matchesGroup;
@@ -264,29 +277,29 @@ export const ListEditor: React.FC<ListEditorProps> = ({
       let valB: string | number = '';
 
       if (sortField === 'code') {
-        valA = a.code.toLowerCase();
-        valB = b.code.toLowerCase();
+        valA = (a.code || '').toLowerCase();
+        valB = (b.code || '').toLowerCase();
       } else if (sortField === 'description') {
-        valA = a.description.toLowerCase();
-        valB = b.description.toLowerCase();
+        valA = (a.description || '').toLowerCase();
+        valB = (b.description || '').toLowerCase();
       } else if (sortField === 'group') {
-        valA = a.group.toLowerCase();
-        valB = b.group.toLowerCase();
+        valA = (a.group || '').toLowerCase();
+        valB = (b.group || '').toLowerCase();
       } else if (sortField === 'unit') {
-        valA = a.unit.toLowerCase();
-        valB = b.unit.toLowerCase();
+        valA = (a.unit || '').toLowerCase();
+        valB = (b.unit || '').toLowerCase();
       } else if (sortField === 'quantity') {
-        valA = a.quantity;
-        valB = b.quantity;
+        valA = Number(a.quantity) || 0;
+        valB = Number(b.quantity) || 0;
       } else if (sortField === 'unitCost') {
-        valA = a.unitCost;
-        valB = b.unitCost;
+        valA = Number(a.unitCost) || 0;
+        valB = Number(b.unitCost) || 0;
       } else if (sortField === 'totalCost') {
-        valA = a.totalCost;
-        valB = b.totalCost;
+        valA = Number(a.totalCost) || 0;
+        valB = Number(b.totalCost) || 0;
       } else if (sortField === 'totalWeight') {
-        valA = a.totalWeight;
-        valB = b.totalWeight;
+        valA = Number(a.totalWeight) || 0;
+        valB = Number(b.totalWeight) || 0;
       }
 
       if (valA < valB) return sortOrder === 'asc' ? -1 : 1;

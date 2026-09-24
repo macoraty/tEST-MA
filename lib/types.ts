@@ -79,6 +79,43 @@ export interface AppSettings {
   excelShowWeights?: boolean;
 }
 
-export type ActiveTab = 'lists' | 'new-list' | 'catalog' | 'settings';
+export type ActiveTab = 'lists' | 'new-list' | 'catalog' | 'settings' | 'requisitions';
+
+export type RequisitionPriority = 'Baixa' | 'Normal' | 'Alta' | 'Urgente';
+export type RequisitionStatus = 'Pendente' | 'Em Cotação' | 'Aprovada' | 'Entregue' | 'Cancelada';
+
+export interface RequisitionItem {
+  id: string;
+  catalogItemId?: string;
+  code: string;
+  description: string;
+  group: string;
+  unit: string;
+  quantity: number;
+  estimatedCost: number;
+  totalEstimatedCost: number;
+  destinationMachine?: string;
+  notes?: string;
+}
+
+export interface SupplyRequisition {
+  id: string;
+  protocol: string;
+  title: string;
+  requesterName: string;
+  sector: string;
+  destinationMachine?: string;
+  priority: RequisitionPriority;
+  status: RequisitionStatus;
+  requestDate: string;
+  neededByDate?: string;
+  justification: string;
+  items: RequisitionItem[];
+  totalEstimatedCost: number;
+  totalItemsCount: number;
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+}
 
 export type SortOrder = 'asc' | 'desc';

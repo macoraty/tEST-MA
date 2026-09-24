@@ -26,6 +26,7 @@ import {
   CheckCircle2,
   Clock,
   AlertCircle,
+  ClipboardList,
 } from 'lucide-react';
 
 interface ListsViewProps {
@@ -37,6 +38,7 @@ interface ListsViewProps {
   onDuplicateList: (id: string) => void;
   onDeleteList: (id: string) => void;
   onOpenWhatsApp: (list: MaterialList) => void;
+  onGenerateRequisition?: (list: MaterialList) => void;
 }
 
 type SortField = 'name' | 'machine' | 'client' | 'date' | 'itemsCount' | 'totalCost' | 'status';
@@ -50,6 +52,7 @@ export const ListsView: React.FC<ListsViewProps> = ({
   onDuplicateList,
   onDeleteList,
   onOpenWhatsApp,
+  onGenerateRequisition,
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedMachine, setSelectedMachine] = useState('ALL');
@@ -89,27 +92,42 @@ export const ListsView: React.FC<ListsViewProps> = ({
 
   // Filter and sort lists
   const filteredAndSortedLists = useMemo(() => {
+    if (!Array.isArray(lists)) return [];
+    const query = (searchTerm || '').trim().toLowerCase();
+
     return lists
       .filter((list) => {
+        if (!list) return false;
+        const name = (list.name || '').toLowerCase();
+        const machine = (list.machine || '').toLowerCase();
+        const client = (list.client || '').toLowerCase();
+        const responsible = (list.responsible || '').toLowerCase();
+        const notes = (list.notes || '').toLowerCase();
+        const items = Array.isArray(list.items) ? list.items : [];
+
         // Search term
-        const query = searchTerm.toLowerCase();
         const matchesSearch =
           !query ||
-          list.name.toLowerCase().includes(query) ||
-          list.machine.toLowerCase().includes(query) ||
-          list.client.toLowerCase().includes(query) ||
-          (list.responsible && list.responsible.toLowerCase().includes(query)) ||
-          (list.notes && list.notes.toLowerCase().includes(query)) ||
-          list.items.some((i) => i.description.toLowerCase().includes(query) || i.code.toLowerCase().includes(query));
+          name.includes(query) ||
+          machine.includes(query) ||
+          client.includes(query) ||
+          responsible.includes(query) ||
+          notes.includes(query) ||
+          items.some((i) => {
+            if (!i) return false;
+            const iDesc = (i.description || '').toLowerCase();
+            const iCode = (i.code || '').toLowerCase();
+            return iDesc.includes(query) || iCode.includes(query);
+          });
 
         // Machine filter
-        const matchesMachine = selectedMachine === 'ALL' || list.machine === selectedMachine;
+        const matchesMachine = selectedMachine === 'ALL' || (list.machine || '') === selectedMachine;
 
         // Client filter
-        const matchesClient = selectedClient === 'ALL' || list.client === selectedClient;
+        const matchesClient = selectedClient === 'ALL' || (list.client || '') === selectedClient;
 
         // Status filter
-        const matchesStatus = selectedStatus === 'ALL' || list.status === selectedStatus;
+        const matchesStatus = selectedStatus === 'ALL' || (list.status || '') === selectedStatus;
 
         return matchesSearch && matchesMachine && matchesClient && matchesStatus;
       })
@@ -118,26 +136,28 @@ export const ListsView: React.FC<ListsViewProps> = ({
         let valB: string | number = '';
 
         if (sortField === 'name') {
-          valA = a.name.toLowerCase();
-          valB = b.name.toLowerCase();
+          valA = (a.name || '').toLowerCase();
+          valB = (b.name || '').toLowerCase();
         } else if (sortField === 'machine') {
-          valA = a.machine.toLowerCase();
-          valB = b.machine.toLowerCase();
+          valA = (a.machine || '').toLowerCase();
+          valB = (b.machine || '').toLowerCase();
         } else if (sortField === 'client') {
-          valA = a.client.toLowerCase();
-          valB = b.client.toLowerCase();
+          valA = (a.client || '').toLowerCase();
+          valB = (b.client || '').toLowerCase();
         } else if (sortField === 'date') {
-          valA = new Date(a.date || a.createdAt).getTime();
-          valB = new Date(b.date || b.createdAt).getTime();
+          valA = new Date(a.date || a.createdAt || 0).getTime();
+          valB = new Date(b.date || b.createdAt || 0).getTime();
         } else if (sortField === 'itemsCount') {
-          valA = a.items.length;
-          valB = b.items.length;
+          valA = Array.isArray(a.items) ? a.items.length : 0;
+          valB = Array.isArray(b.items) ? b.items.length : 0;
         } else if (sortField === 'totalCost') {
-          valA = a.items.reduce((acc, i) => acc + (Number(i.totalCost) || 0), 0);
-          valB = b.items.reduce((acc, i) => acc + (Number(i.totalCost) || 0), 0);
+          const aItems = Array.isArray(a.items) ? a.items : [];
+          const bItems = Array.isArray(b.items) ? b.items : [];
+          valA = aItems.reduce((acc, i) => acc + (Number(i?.totalCost) || 0), 0);
+          valB = bItems.reduce((acc, i) => acc + (Number(i?.totalCost) || 0), 0);
         } else if (sortField === 'status') {
-          valA = a.status.toLowerCase();
-          valB = b.status.toLowerCase();
+          valA = (a.status || '').toLowerCase();
+          valB = (b.status || '').toLowerCase();
         }
 
         if (valA < valB) return sortOrder === 'asc' ? -1 : 1;
@@ -531,6 +551,17 @@ export const ListsView: React.FC<ListsViewProps> = ({
                               <Eye className="h-4 w-4" />
                             </button>
 
+                            {/* Gerar Solicitação de Insumos */}
+                            {onGenerateRequisition && (
+                              <button
+                                onClick={() => onGenerateRequisition(list)}
+                                title="Gerar Solicitação de Insumos a partir desta Lista"
+                                className="rounded-lg p-1.5 text-amber-400 transition hover:bg-amber-950/60 hover:text-amber-300"
+                              >
+                                <ClipboardList className="h-4 w-4" />
+                              </button>
+                            )}
+
                             {/* WhatsApp */}
                             <button
                               onClick={() => onOpenWhatsApp(list)}
@@ -714,6 +745,16 @@ export const ListsView: React.FC<ListsViewProps> = ({
                       </div>
 
                       <div className="flex items-center gap-1.5">
+                        {onGenerateRequisition && (
+                          <button
+                            onClick={() => onGenerateRequisition(list)}
+                            className="flex items-center gap-1 rounded-lg border border-amber-500/30 bg-amber-950/40 px-2.5 py-1.5 text-xs font-medium text-amber-300 transition hover:bg-amber-900/50 hover:text-amber-200"
+                            title="Gerar Solicitação de Insumos a partir desta Lista"
+                          >
+                            <ClipboardList className="h-3.5 w-3.5" />
+                            <span>Solicitar</span>
+                          </button>
+                        )}
                         <button
                           onClick={() => onPreviewList(list)}
                           className="flex items-center gap-1 rounded-lg border border-cyan-500/30 bg-cyan-950/40 px-2.5 py-1.5 text-xs font-medium text-cyan-400 transition hover:bg-cyan-900/50 hover:text-cyan-300"
