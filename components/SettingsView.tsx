@@ -45,6 +45,8 @@ import {
   Briefcase,
   Wrench,
   Loader2,
+  Edit2,
+  X,
 } from 'lucide-react';
 import { ExcelCatalogImportSection } from './ExcelCatalogImportSection';
 
@@ -53,10 +55,13 @@ interface SettingsViewProps {
   catalog: CatalogItem[];
   onSaveSettings: (settings: AppSettings) => void;
   onSaveCatalog: (catalog: CatalogItem[]) => void;
+  onClearCatalog?: () => void;
   onNavigateToCatalog?: () => void;
   onAddGroup: (group: string) => void;
+  onEditGroup?: (oldGroup: string, newGroup: string) => void;
   onDeleteGroup: (group: string) => void;
   onAddUnit: (unit: string) => void;
+  onEditUnit?: (oldUnit: string, newUnit: string) => void;
   onDeleteUnit: (unit: string) => void;
   onExportBackup: () => void;
   onImportBackup: (json: string) => boolean;
@@ -69,10 +74,13 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   catalog,
   onSaveSettings,
   onSaveCatalog,
+  onClearCatalog,
   onNavigateToCatalog,
   onAddGroup,
+  onEditGroup,
   onDeleteGroup,
   onAddUnit,
+  onEditUnit,
   onDeleteUnit,
   onExportBackup,
   onImportBackup,
@@ -85,6 +93,11 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 
   const [newGroupInput, setNewGroupInput] = useState('');
   const [newUnitInput, setNewUnitInput] = useState('');
+
+  // Editing states for Groups and Units
+  const [editingGroup, setEditingGroup] = useState<{ oldName: string; currentName: string } | null>(null);
+  const [editingUnit, setEditingUnit] = useState<{ oldUnit: string; currentUnit: string } | null>(null);
+  const [groupUnitFeedback, setGroupUnitFeedback] = useState<string | null>(null);
 
   // Editable app branding & logo settings
   const [appName, setAppName] = useState(settings.appName || 'ListaPro Industrial');
@@ -154,6 +167,10 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   // Code Regeneration state & confirmation modal
   const [isRegenerateModalOpen, setIsRegenerateModalOpen] = useState(false);
   const [codeRegenFeedback, setCodeRegenFeedback] = useState<string | null>(null);
+
+  // Clear & Reset Catalog modal states
+  const [isClearCatalogModalOpen, setIsClearCatalogModalOpen] = useState(false);
+  const [isResetCatalogModalOpen, setIsResetCatalogModalOpen] = useState(false);
 
   // Keep ref updated safely in useEffect
   const latestStateRef = useRef({
@@ -385,6 +402,48 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
     setNewUnitInput('');
   };
 
+  const handleSaveGroupEdit = () => {
+    if (!editingGroup) return;
+    const newName = editingGroup.currentName.trim().toUpperCase();
+    if (!newName) return;
+    if (newName !== editingGroup.oldName) {
+      if (onEditGroup) {
+        onEditGroup(editingGroup.oldName, newName);
+      } else {
+        const updatedGroups = settings.groups.map((g) =>
+          g === editingGroup.oldName ? newName : g
+        );
+        onSaveSettings({ ...settings, groups: updatedGroups });
+      }
+      setGroupUnitFeedback(
+        `Grupo "${editingGroup.oldName}" renomeado para "${newName}" e atualizado no catálogo!`
+      );
+      setTimeout(() => setGroupUnitFeedback(null), 4000);
+    }
+    setEditingGroup(null);
+  };
+
+  const handleSaveUnitEdit = () => {
+    if (!editingUnit) return;
+    const newUnit = editingUnit.currentUnit.trim().toUpperCase();
+    if (!newUnit) return;
+    if (newUnit !== editingUnit.oldUnit) {
+      if (onEditUnit) {
+        onEditUnit(editingUnit.oldUnit, newUnit);
+      } else {
+        const updatedUnits = settings.units.map((u) =>
+          u.toUpperCase() === editingUnit.oldUnit ? newUnit : u
+        );
+        onSaveSettings({ ...settings, units: updatedUnits });
+      }
+      setGroupUnitFeedback(
+        `Unidade "${editingUnit.oldUnit}" renomeada para "${newUnit}" e atualizada no catálogo!`
+      );
+      setTimeout(() => setGroupUnitFeedback(null), 4000);
+    }
+    setEditingUnit(null);
+  };
+
   const handleFileImport = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -411,6 +470,20 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
       `Sucesso! ${res.totalItems} materiais foram reordenados e padronizados com o formato [5 Letras + 4 Dígitos].`
     );
     setTimeout(() => setCodeRegenFeedback(null), 5000);
+  };
+
+  const handleExecuteClearCatalog = () => {
+    if (onClearCatalog) {
+      onClearCatalog();
+    } else {
+      onSaveCatalog([]);
+    }
+    setIsClearCatalogModalOpen(false);
+  };
+
+  const handleExecuteResetCatalog = () => {
+    onResetCatalog();
+    setIsResetCatalogModalOpen(false);
   };
 
   // Count items per group
@@ -1344,6 +1417,22 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
       {/* SUB-TAB 1: Dynamic Groups & Units */}
       {activeSubTab === 'parameters' && (
         <div className="space-y-6">
+          {groupUnitFeedback && (
+            <div className="flex items-center justify-between rounded-xl border border-emerald-500/40 bg-emerald-950/40 p-3.5 text-xs text-emerald-300 animate-in fade-in">
+              <div className="flex items-center gap-2">
+                <Check className="h-4 w-4 text-emerald-400" />
+                <span>{groupUnitFeedback}</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setGroupUnitFeedback(null)}
+                className="text-emerald-400/80 hover:text-emerald-200"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          )}
+
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
             {/* Grupos / Categorias */}
             <div className="rounded-2xl border border-zinc-800 bg-zinc-950 p-5 shadow-xl sm:p-6">
@@ -1355,7 +1444,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                   <div>
                     <h3 className="text-sm font-bold text-zinc-100">Grupos / Categorias</h3>
                     <p className="text-[11px] text-zinc-400">
-                      {settings.groups.length} grupos cadastrados
+                      {settings.groups.length} grupos cadastrados (clique no lápis para editar)
                     </p>
                   </div>
                 </div>
@@ -1386,31 +1475,90 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                 {settings.groups.map((group) => {
                   const count = groupCounts[group] || 0;
                   const prefix = getGroupPrefix(group);
+                  const isEditingThis = editingGroup?.oldName === group;
+
                   return (
                     <div
                       key={group}
-                      className="flex items-center justify-between rounded-xl border border-zinc-800/80 bg-zinc-900/60 p-2.5 text-xs text-zinc-200 transition hover:bg-zinc-900"
+                      className={`flex items-center justify-between rounded-xl border p-2.5 text-xs transition ${
+                        isEditingThis
+                          ? 'border-cyan-500 bg-cyan-950/30'
+                          : 'border-zinc-800/80 bg-zinc-900/60 text-zinc-200 hover:bg-zinc-900'
+                      }`}
                     >
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium">{group}</span>
-                        <span className="rounded bg-cyan-950/80 px-1.5 py-0.5 font-mono text-[10px] text-cyan-300">
-                          {prefix}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="rounded-md bg-zinc-800 px-2 py-0.5 text-[10px] text-zinc-400">
-                          {count} {count === 1 ? 'item' : 'itens'}
-                        </span>
-                        {settings.groups.length > 1 && (
+                      {isEditingThis ? (
+                        <div className="flex w-full items-center gap-2">
+                          <input
+                            type="text"
+                            value={editingGroup.currentName}
+                            onChange={(e) =>
+                              setEditingGroup({ ...editingGroup, currentName: e.target.value })
+                            }
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault();
+                                handleSaveGroupEdit();
+                              } else if (e.key === 'Escape') {
+                                setEditingGroup(null);
+                              }
+                            }}
+                            autoFocus
+                            placeholder="Nome do grupo"
+                            className="flex-1 rounded-lg border border-cyan-500 bg-zinc-950 px-2.5 py-1 text-xs text-zinc-100 outline-none"
+                          />
                           <button
-                            onClick={() => onDeleteGroup(group)}
-                            title="Remover Grupo"
-                            className="rounded-lg p-1 text-zinc-500 transition hover:bg-red-950/40 hover:text-red-400"
+                            type="button"
+                            onClick={handleSaveGroupEdit}
+                            title="Salvar alteração"
+                            className="flex items-center gap-1 rounded-lg bg-cyan-500 px-2.5 py-1 text-[11px] font-bold text-zinc-950 hover:bg-cyan-400 transition"
                           >
-                            <Trash2 className="h-3.5 w-3.5" />
+                            <Check className="h-3.5 w-3.5" />
+                            <span>Salvar</span>
                           </button>
-                        )}
-                      </div>
+                          <button
+                            type="button"
+                            onClick={() => setEditingGroup(null)}
+                            title="Cancelar"
+                            className="rounded-lg bg-zinc-800 p-1 text-zinc-400 hover:text-zinc-200 transition"
+                          >
+                            <X className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      ) : (
+                        <>
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium text-zinc-200">{group}</span>
+                            <span className="rounded bg-cyan-950/80 px-1.5 py-0.5 font-mono text-[10px] text-cyan-300">
+                              {prefix}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="rounded-md bg-zinc-800 px-2 py-0.5 text-[10px] text-zinc-400">
+                              {count} {count === 1 ? 'item' : 'itens'}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setEditingGroup({ oldName: group, currentName: group })
+                              }
+                              title="Editar Nome do Grupo"
+                              className="rounded-lg p-1 text-zinc-400 transition hover:bg-cyan-950/60 hover:text-cyan-300"
+                            >
+                              <Edit2 className="h-3.5 w-3.5" />
+                            </button>
+                            {settings.groups.length > 1 && (
+                              <button
+                                type="button"
+                                onClick={() => onDeleteGroup(group)}
+                                title="Remover Grupo"
+                                className="rounded-lg p-1 text-zinc-500 transition hover:bg-red-950/40 hover:text-red-400"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
+                            )}
+                          </div>
+                        </>
+                      )}
                     </div>
                   );
                 })}
@@ -1427,7 +1575,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                   <div>
                     <h3 className="text-sm font-bold text-zinc-100">Unidades de Medida</h3>
                     <p className="text-[11px] text-zinc-400">
-                      {settings.units.length} unidades cadastradas
+                      {settings.units.length} unidades cadastradas (clique no lápis para editar)
                     </p>
                   </div>
                 </div>
@@ -1455,23 +1603,89 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 
               {/* List of Units */}
               <div className="mt-4 max-h-80 space-y-2 overflow-y-auto pr-1">
-                {settings.units.map((unit) => (
-                  <div
-                    key={unit}
-                    className="flex items-center justify-between rounded-xl border border-zinc-800/80 bg-zinc-900/60 p-2.5 text-xs text-zinc-200 transition hover:bg-zinc-900"
-                  >
-                    <span className="font-mono font-semibold text-zinc-200">{unit}</span>
-                    {settings.units.length > 1 && (
-                      <button
-                        onClick={() => onDeleteUnit(unit)}
-                        title="Remover Unidade"
-                        className="rounded-lg p-1 text-zinc-500 transition hover:bg-red-950/40 hover:text-red-400"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
-                    )}
-                  </div>
-                ))}
+                {settings.units.map((unit) => {
+                  const isEditingThis = editingUnit?.oldUnit === unit;
+
+                  return (
+                    <div
+                      key={unit}
+                      className={`flex items-center justify-between rounded-xl border p-2.5 text-xs transition ${
+                        isEditingThis
+                          ? 'border-emerald-500 bg-emerald-950/30'
+                          : 'border-zinc-800/80 bg-zinc-900/60 text-zinc-200 hover:bg-zinc-900'
+                      }`}
+                    >
+                      {isEditingThis ? (
+                        <div className="flex w-full items-center gap-2">
+                          <input
+                            type="text"
+                            value={editingUnit.currentUnit}
+                            onChange={(e) =>
+                              setEditingUnit({
+                                ...editingUnit,
+                                currentUnit: e.target.value.toUpperCase(),
+                              })
+                            }
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault();
+                                handleSaveUnitEdit();
+                              } else if (e.key === 'Escape') {
+                                setEditingUnit(null);
+                              }
+                            }}
+                            autoFocus
+                            placeholder="Ex: PC, KG, M"
+                            className="flex-1 rounded-lg border border-emerald-500 bg-zinc-950 px-2.5 py-1 font-mono text-xs uppercase text-zinc-100 outline-none"
+                          />
+                          <button
+                            type="button"
+                            onClick={handleSaveUnitEdit}
+                            title="Salvar alteração"
+                            className="flex items-center gap-1 rounded-lg bg-emerald-500 px-2.5 py-1 text-[11px] font-bold text-zinc-950 hover:bg-emerald-400 transition"
+                          >
+                            <Check className="h-3.5 w-3.5" />
+                            <span>Salvar</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setEditingUnit(null)}
+                            title="Cancelar"
+                            className="rounded-lg bg-zinc-800 p-1 text-zinc-400 hover:text-zinc-200 transition"
+                          >
+                            <X className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      ) : (
+                        <>
+                          <span className="font-mono font-semibold text-zinc-200">{unit}</span>
+                          <div className="flex items-center gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setEditingUnit({ oldUnit: unit, currentUnit: unit })
+                              }
+                              title="Editar Unidade de Medida"
+                              className="rounded-lg p-1 text-zinc-400 transition hover:bg-emerald-950/60 hover:text-emerald-300"
+                            >
+                              <Edit2 className="h-3.5 w-3.5" />
+                            </button>
+                            {settings.units.length > 1 && (
+                              <button
+                                type="button"
+                                onClick={() => onDeleteUnit(unit)}
+                                title="Remover Unidade"
+                                className="rounded-lg p-1 text-zinc-500 transition hover:bg-red-950/40 hover:text-red-400"
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
+                            )}
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </div>
           </div>
@@ -1750,28 +1964,118 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             )}
           </div>
 
-          {/* Reset Box */}
+          {/* Reset & Wipe Box */}
           <div className="rounded-2xl border border-red-900/30 bg-red-950/10 p-6 sm:p-8">
             <h3 className="text-base font-bold text-red-400">Zona de Perigo / Restauração</h3>
             <p className="mt-1 text-xs text-zinc-400">
-              Restaura todo o catálogo com os 60+ materiais e insumos industriais padrão. Esta ação não pode ser desfeita.
+              Restaure o catálogo com os materiais industriais padrão ou limpe todo o banco de materiais para importar novas planilhas.
             </p>
-            <div className="mt-4">
+            <div className="mt-4 flex flex-wrap items-center gap-3">
               <button
+                type="button"
                 id="btn-reset-default-catalog"
-                onClick={() => {
-                  if (
-                    window.confirm(
-                      'Tem certeza que deseja restaurar o catálogo para o padrão de fábrica? Itens personalizados serão substituídos.'
-                    )
-                  ) {
-                    onResetCatalog();
-                  }
-                }}
-                className="flex items-center gap-2 rounded-xl border border-red-500/40 bg-red-900/30 px-4 py-2 text-xs font-semibold text-red-300 transition hover:bg-red-900/50"
+                onClick={() => setIsResetCatalogModalOpen(true)}
+                className="flex items-center gap-2 rounded-xl border border-amber-500/40 bg-amber-900/30 px-4 py-2 text-xs font-semibold text-amber-300 transition hover:bg-amber-900/50"
               >
                 <RotateCcw className="h-4 w-4" />
                 <span>Restaurar Catálogo Padrão</span>
+              </button>
+
+              <button
+                type="button"
+                id="btn-wipe-all-catalog-settings"
+                onClick={() => setIsClearCatalogModalOpen(true)}
+                disabled={catalog.length === 0}
+                className="flex items-center gap-2 rounded-xl border border-rose-500/40 bg-rose-900/30 px-4 py-2 text-xs font-semibold text-rose-300 transition hover:bg-rose-900/50 disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <Trash2 className="h-4 w-4" />
+                <span>Excluir Todos os Materiais ({catalog.length})</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Clear All Catalog Confirmation Modal */}
+      {isClearCatalogModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-4 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="w-full max-w-lg rounded-2xl border border-rose-500/50 bg-zinc-950 p-6 shadow-2xl">
+            <div className="flex items-start gap-3.5">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-rose-500/20 text-rose-400 border border-rose-500/30">
+                <Trash2 className="h-6 w-6" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-base font-bold text-zinc-100">
+                  Excluir TODOS os {catalog.length} materiais do catálogo?
+                </h3>
+                <p className="mt-2 text-xs text-zinc-300 leading-relaxed">
+                  Esta ação irá apagar <strong>todos os {catalog.length} materiais e insumos</strong> atualmente cadastrados no Catálogo Geral.
+                </p>
+                <div className="mt-3 rounded-xl border border-rose-500/30 bg-rose-950/20 p-3 text-xs text-rose-300/90 leading-relaxed">
+                  O catálogo ficará totalmente em branco, permitindo importar uma nova planilha Excel limpa ou fazer cadastros manuais do zero. Você poderá restaurar os materiais padrão a qualquer momento.
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-6 flex items-center justify-end gap-3 border-t border-zinc-800 pt-4">
+              <button
+                type="button"
+                onClick={() => setIsClearCatalogModalOpen(false)}
+                className="rounded-xl border border-zinc-800 bg-zinc-900 px-4 py-2 text-xs font-medium text-zinc-300 transition hover:bg-zinc-800"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                id="btn-confirm-wipe-catalog-settings"
+                onClick={handleExecuteClearCatalog}
+                className="flex items-center gap-2 rounded-xl bg-rose-600 px-5 py-2 text-xs font-bold text-white shadow-lg shadow-rose-950/60 transition hover:bg-rose-500"
+              >
+                <Trash2 className="h-4 w-4" />
+                <span>Sim, Excluir Todos os Materiais ({catalog.length})</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Reset Default Catalog Confirmation Modal */}
+      {isResetCatalogModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-4 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="w-full max-w-lg rounded-2xl border border-amber-500/50 bg-zinc-950 p-6 shadow-2xl">
+            <div className="flex items-start gap-3.5">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                <RotateCcw className="h-6 w-6" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-base font-bold text-zinc-100">
+                  Restaurar Catálogo Padrão de Fábrica?
+                </h3>
+                <p className="mt-2 text-xs text-zinc-300 leading-relaxed">
+                  Esta ação irá recarregar todos os 60+ materiais e insumos industriais padrão (Correntes, Rolamentos, Mancais, Parafusos, Tubos, Vigas, etc.).
+                </p>
+                <div className="mt-3 rounded-xl border border-amber-500/30 bg-amber-950/20 p-3 text-xs text-amber-300/90 leading-relaxed">
+                  Itens personalizados atuais serão substituídos pela base padrão da indústria.
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-6 flex items-center justify-end gap-3 border-t border-zinc-800 pt-4">
+              <button
+                type="button"
+                onClick={() => setIsResetCatalogModalOpen(false)}
+                className="rounded-xl border border-zinc-800 bg-zinc-900 px-4 py-2 text-xs font-medium text-zinc-300 transition hover:bg-zinc-800"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                id="btn-confirm-reset-catalog-settings"
+                onClick={handleExecuteResetCatalog}
+                className="flex items-center gap-2 rounded-xl bg-amber-600 px-5 py-2 text-xs font-bold text-zinc-950 shadow-lg shadow-amber-950/60 transition hover:bg-amber-500"
+              >
+                <RotateCcw className="h-4 w-4" />
+                <span>Sim, Restaurar Catálogo Padrão</span>
               </button>
             </div>
           </div>

@@ -30,6 +30,8 @@ export default function Home() {
     saveCatalog,
     saveCatalogItem,
     deleteCatalogItem,
+    deleteMultipleCatalogItems,
+    clearAllCatalogItems,
     resetCatalogToDefault,
     regenerateAllCodes,
     saveRequisitions,
@@ -39,8 +41,10 @@ export default function Home() {
     convertRequisitionToBOM,
     saveSettings,
     addGroup,
+    editGroup,
     deleteGroup,
     addUnit,
+    editUnit,
     deleteUnit,
     exportBackupJSON,
     importBackupJSON,
@@ -347,6 +351,8 @@ export default function Home() {
               onOpenAddItemModal={handleOpenAddItemModal}
               onEditItem={handleEditCatalogItem}
               onDeleteItem={deleteCatalogItem}
+              onDeleteMultipleItems={deleteMultipleCatalogItems}
+              onClearAllItems={clearAllCatalogItems}
               onResetToDefault={resetCatalogToDefault}
               onSaveCatalog={saveCatalog}
               onSaveSettings={saveSettings}
@@ -358,10 +364,13 @@ export default function Home() {
               catalog={catalog}
               onSaveSettings={saveSettings}
               onSaveCatalog={saveCatalog}
+              onClearCatalog={clearAllCatalogItems}
               onNavigateToCatalog={() => setActiveTab('catalog')}
               onAddGroup={addGroup}
+              onEditGroup={editGroup}
               onDeleteGroup={deleteGroup}
               onAddUnit={addUnit}
+              onEditUnit={editUnit}
               onDeleteUnit={deleteUnit}
               onExportBackup={exportBackupJSON}
               onImportBackup={importBackupJSON}

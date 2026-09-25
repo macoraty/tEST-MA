@@ -66,6 +66,7 @@ export const RequisitionsView: React.FC<RequisitionsViewProps> = ({
 
   // Copied protocol feedback state
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
   // Distinct sectors
   const distinctSectors = useMemo(() => {
@@ -580,22 +581,37 @@ export const RequisitionsView: React.FC<RequisitionsViewProps> = ({
                     </button>
 
                     {/* Delete */}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (
-                          window.confirm(
-                            `Deseja realmente excluir a requisição ${req.protocol}?`
-                          )
-                        ) {
-                          onDeleteRequisition(req.id);
-                        }
-                      }}
-                      className="rounded-lg p-1.5 text-zinc-500 transition-colors hover:bg-rose-500/20 hover:text-rose-400"
-                      title="Excluir requisição"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
+                    {deleteConfirmId === req.id ? (
+                      <div className="flex items-center gap-1.5 rounded-lg bg-rose-950/60 p-1 border border-rose-500/40 animate-in fade-in">
+                        <span className="text-[10px] text-rose-300 font-semibold px-1">Excluir?</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            onDeleteRequisition(req.id);
+                            setDeleteConfirmId(null);
+                          }}
+                          className="rounded bg-rose-600 px-2 py-0.5 text-[10px] font-bold text-white hover:bg-rose-500"
+                        >
+                          Sim
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setDeleteConfirmId(null)}
+                          className="rounded bg-zinc-800 px-2 py-0.5 text-[10px] text-zinc-300 hover:bg-zinc-700"
+                        >
+                          Não
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setDeleteConfirmId(req.id)}
+                        className="rounded-lg p-1.5 text-zinc-500 transition-colors hover:bg-rose-500/20 hover:text-rose-400"
+                        title="Excluir requisição"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>

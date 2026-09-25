@@ -21,6 +21,11 @@ import {
   Scale,
   Check,
   Upload,
+  CheckSquare,
+  Square,
+  AlertTriangle,
+  AlertOctagon,
+  X,
 } from 'lucide-react';
 import { ExcelCatalogImportModal } from './ExcelCatalogImportModal';
 
@@ -30,6 +35,8 @@ interface CatalogViewProps {
   onOpenAddItemModal: () => void;
   onEditItem: (item: CatalogItem) => void;
   onDeleteItem: (id: string) => void;
+  onDeleteMultipleItems?: (ids: string[]) => void;
+  onClearAllItems?: () => void;
   onResetToDefault: () => void;
   onSaveCatalog?: (newCatalog: CatalogItem[]) => void;
   onSaveSettings?: (newSettings: AppSettings) => void;
@@ -43,6 +50,8 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
   onOpenAddItemModal,
   onEditItem,
   onDeleteItem,
+  onDeleteMultipleItems,
+  onClearAllItems,
   onResetToDefault,
   onSaveCatalog,
   onSaveSettings,
@@ -55,6 +64,11 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+
+  // Multi-selection & Bulk Deletion States
+  const [selectedItemIds, setSelectedItemIds] = useState<Set<string>>(new Set());
+  const [showDeleteAllModal, setShowDeleteAllModal] = useState(false);
+  const [showDeleteSelectedModal, setShowDeleteSelectedModal] = useState(false);
 
   // Sorting helper
   const handleSort = (field: CatalogSortField) => {
@@ -132,6 +146,74 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
     );
   };
 
+  // Multi-selection helpers
+  const toggleSelectItem = (id: string) => {
+    setSelectedItemIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
+  const isAllFilteredSelected = useMemo(() => {
+    if (filteredAndSortedCatalog.length === 0) return false;
+    return filteredAndSortedCatalog.every((item) => selectedItemIds.has(item.id));
+  }, [filteredAndSortedCatalog, selectedItemIds]);
+
+  const toggleSelectAllFiltered = () => {
+    if (isAllFilteredSelected) {
+      setSelectedItemIds((prev) => {
+        const next = new Set(prev);
+        filteredAndSortedCatalog.forEach((item) => next.delete(item.id));
+        return next;
+      });
+    } else {
+      setSelectedItemIds((prev) => {
+        const next = new Set(prev);
+        filteredAndSortedCatalog.forEach((item) => next.add(item.id));
+        return next;
+      });
+    }
+  };
+
+  const clearSelection = () => {
+    setSelectedItemIds(new Set());
+  };
+
+  const handleConfirmDeleteSelected = () => {
+    const idsToDelete = Array.from(selectedItemIds);
+    if (idsToDelete.length === 0) return;
+
+    if (onDeleteMultipleItems) {
+      onDeleteMultipleItems(idsToDelete);
+    } else if (onSaveCatalog) {
+      const idsSet = new Set(idsToDelete);
+      onSaveCatalog(catalog.filter((i) => !idsSet.has(i.id)));
+    } else {
+      idsToDelete.forEach((id) => onDeleteItem(id));
+    }
+
+    setSelectedItemIds(new Set());
+    setShowDeleteSelectedModal(false);
+  };
+
+  const handleConfirmDeleteAll = () => {
+    if (onClearAllItems) {
+      onClearAllItems();
+    } else if (onSaveCatalog) {
+      onSaveCatalog([]);
+    } else {
+      catalog.forEach((item) => onDeleteItem(item.id));
+    }
+
+    setSelectedItemIds(new Set());
+    setShowDeleteAllModal(false);
+  };
+
   return (
     <div className="space-y-5">
       {/* Top Title & Actions Bar */}
@@ -168,6 +250,18 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
               <span>Importar Excel</span>
             </button>
           )}
+
+          {/* Delete All button */}
+          <button
+            id="btn-delete-all-catalog"
+            onClick={() => setShowDeleteAllModal(true)}
+            disabled={catalog.length === 0}
+            className="flex items-center gap-1.5 rounded-xl border border-rose-500/40 bg-rose-950/30 px-3.5 py-2 text-xs font-semibold text-rose-300 transition hover:bg-rose-900/50 hover:text-rose-200 disabled:opacity-40 disabled:cursor-not-allowed shadow-sm"
+            title="Excluir todos os materiais cadastrados do catálogo"
+          >
+            <Trash2 className="h-4 w-4 text-rose-400" />
+            <span>Excluir Todos ({catalog.length})</span>
+          </button>
 
           {/* Reset button */}
           <button
@@ -282,11 +376,65 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
         </div>
       </div>
 
+      {/* Bulk Selection Bar */}
+      {selectedItemIds.size > 0 && (
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-rose-500/40 bg-gradient-to-r from-rose-950/70 via-zinc-950 to-zinc-950 p-3.5 shadow-xl animate-in fade-in slide-in-from-top-2">
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-rose-500/20 text-rose-400 font-bold border border-rose-500/30">
+              <CheckSquare className="h-4 w-4" />
+            </div>
+            <div>
+              <span className="text-xs font-bold text-zinc-100">
+                {selectedItemIds.size} {selectedItemIds.size === 1 ? 'material selecionado' : 'materiais selecionados'}
+              </span>
+              <span className="text-[11px] text-zinc-400 ml-2">
+                (de {catalog.length} cadastrados)
+              </span>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={toggleSelectAllFiltered}
+              className="rounded-xl border border-zinc-750 bg-zinc-900 px-3 py-1.5 text-xs font-medium text-zinc-300 hover:bg-zinc-800 hover:text-white transition"
+            >
+              {isAllFilteredSelected
+                ? 'Desmarcar Visíveis'
+                : `Marcar Todos Visíveis (${filteredAndSortedCatalog.length})`}
+            </button>
+
+            <button
+              type="button"
+              onClick={clearSelection}
+              className="rounded-xl border border-zinc-800 bg-zinc-900 px-3 py-1.5 text-xs text-zinc-400 hover:text-zinc-200 transition"
+            >
+              Limpar Seleção
+            </button>
+
+            <button
+              type="button"
+              id="btn-delete-selected-items"
+              onClick={() => setShowDeleteSelectedModal(true)}
+              className="flex items-center gap-1.5 rounded-xl bg-rose-600 px-4 py-1.5 text-xs font-bold text-white shadow-lg shadow-rose-950/60 hover:bg-rose-500 transition"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+              <span>Excluir Selecionados ({selectedItemIds.size})</span>
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Stats Counter */}
       <div className="flex items-center justify-between px-1 text-xs text-zinc-400">
         <span>
           Mostrando <strong className="text-zinc-200">{filteredAndSortedCatalog.length}</strong> de{' '}
-          {catalog.length} materiais cadastrados
+          <strong className="text-zinc-200">{catalog.length}</strong> materiais cadastrados
+          {selectedItemIds.size > 0 && (
+            <span className="text-rose-400 font-semibold ml-2">
+              • {selectedItemIds.size} selecionados
+            </span>
+          )}
         </span>
         <div className="flex items-center gap-1">
           <span>Ordenado por:</span>
@@ -308,6 +456,15 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
           <table className="w-full text-left text-xs text-zinc-300">
             <thead className="border-b border-zinc-800 bg-zinc-900/90 text-zinc-400">
               <tr>
+                <th className="w-10 px-3 py-3 text-center">
+                  <input
+                    type="checkbox"
+                    checked={isAllFilteredSelected && filteredAndSortedCatalog.length > 0}
+                    onChange={toggleSelectAllFiltered}
+                    title={isAllFilteredSelected ? 'Desmarcar todos os visíveis' : 'Selecionar todos os visíveis'}
+                    className="h-4 w-4 cursor-pointer rounded border-zinc-700 bg-zinc-800 accent-rose-500 transition"
+                  />
+                </th>
                 <th
                   onClick={() => handleSort('code')}
                   className="w-32 cursor-pointer px-4 py-3 font-semibold transition hover:text-zinc-100"
@@ -368,19 +525,33 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
             <tbody className="divide-y divide-zinc-800/60">
               {filteredAndSortedCatalog.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="p-8 text-center text-zinc-500">
+                  <td colSpan={8} className="p-8 text-center text-zinc-500">
                     Nenhum material encontrado com os filtros selecionados.
                   </td>
                 </tr>
               ) : (
                 filteredAndSortedCatalog.map((item) => {
                   const isDeleting = deleteConfirmId === item.id;
+                  const isSelected = selectedItemIds.has(item.id);
 
                   return (
                     <tr
                       key={item.id}
-                      className="group transition-colors hover:bg-zinc-900/50"
+                      className={`group transition-colors ${
+                        isSelected ? 'bg-rose-950/20 hover:bg-rose-950/30' : 'hover:bg-zinc-900/50'
+                      }`}
                     >
+                      {/* Checkbox */}
+                      <td className="px-3 py-3 text-center" onClick={(e) => e.stopPropagation()}>
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => toggleSelectItem(item.id)}
+                          aria-label={`Selecionar ${item.description}`}
+                          className="h-4 w-4 cursor-pointer rounded border-zinc-700 bg-zinc-800 accent-rose-500 transition"
+                        />
+                      </td>
+
                       {/* Code */}
                       <td className="px-4 py-3 font-mono font-medium text-zinc-400 group-hover:text-cyan-300">
                         {item.code}
@@ -470,6 +641,115 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
           </table>
         </div>
       </div>
+
+      {/* Modal: Confirm Delete Selected Items */}
+      {showDeleteSelectedModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="w-full max-w-lg rounded-2xl border border-rose-500/40 bg-zinc-950 p-6 shadow-2xl">
+            <div className="flex items-start gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-rose-500/20 text-rose-400">
+                <Trash2 className="h-5 w-5" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-base font-bold text-zinc-100">
+                  Excluir {selectedItemIds.size} {selectedItemIds.size === 1 ? 'material selecionado' : 'materiais selecionados'}?
+                </h3>
+                <p className="mt-1 text-xs text-zinc-400 leading-relaxed">
+                  Os seguintes materiais serão removidos do Catálogo Geral permanentemente:
+                </p>
+
+                {/* Selected Items Preview */}
+                <div className="mt-3 max-h-48 overflow-y-auto rounded-xl border border-zinc-800 bg-zinc-900/60 p-3 space-y-1.5">
+                  {catalog
+                    .filter((i) => selectedItemIds.has(i.id))
+                    .slice(0, 8)
+                    .map((item) => (
+                      <div
+                        key={item.id}
+                        className="flex items-center justify-between text-xs py-1 border-b border-zinc-800/60 last:border-0"
+                      >
+                        <div className="flex items-center gap-2 truncate pr-2">
+                          <span className="font-mono text-[11px] font-bold text-cyan-300 shrink-0">
+                            {item.code}
+                          </span>
+                          <span className="text-zinc-200 truncate">{item.description}</span>
+                        </div>
+                        <span className="text-[10px] text-zinc-400 shrink-0">{item.group}</span>
+                      </div>
+                    ))}
+                  {selectedItemIds.size > 8 && (
+                    <div className="text-center text-[11px] text-zinc-400 pt-1 italic">
+                      + {selectedItemIds.size - 8} outros materiais selecionados...
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-6 flex items-center justify-end gap-3 border-t border-zinc-800 pt-4">
+              <button
+                type="button"
+                onClick={() => setShowDeleteSelectedModal(false)}
+                className="rounded-xl border border-zinc-800 bg-zinc-900 px-4 py-2 text-xs font-medium text-zinc-300 transition hover:bg-zinc-800"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                id="btn-confirm-delete-selected"
+                onClick={handleConfirmDeleteSelected}
+                className="flex items-center gap-2 rounded-xl bg-rose-600 px-5 py-2 text-xs font-bold text-white shadow-lg shadow-rose-950/60 transition hover:bg-rose-500"
+              >
+                <Trash2 className="h-4 w-4" />
+                <span>Sim, Excluir {selectedItemIds.size} {selectedItemIds.size === 1 ? 'Item' : 'Itens'}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Confirm Delete ALL Catalog Items */}
+      {showDeleteAllModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 p-4 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="w-full max-w-lg rounded-2xl border border-rose-500/50 bg-zinc-950 p-6 shadow-2xl">
+            <div className="flex items-start gap-3.5">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-rose-500/20 text-rose-400 border border-rose-500/30">
+                <AlertOctagon className="h-6 w-6" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-base font-bold text-zinc-100">
+                  Excluir TODOS os {catalog.length} materiais do catálogo?
+                </h3>
+                <p className="mt-2 text-xs text-zinc-300 leading-relaxed">
+                  Esta ação irá apagar <strong>todos os {catalog.length} itens</strong> atualmente cadastrados no Catálogo Geral de Materiais e Insumos.
+                </p>
+                <div className="mt-3 rounded-xl border border-rose-500/30 bg-rose-950/20 p-3 text-xs text-rose-300/90 leading-relaxed">
+                  O catálogo ficará completamente vazio, pronto para receber sua própria planilha Excel limpa ou novos cadastros. Se precisar dos materiais de fábrica no futuro, você poderá restaurá-los a qualquer momento pelo botão &quot;Restaurar Banco&quot;.
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-6 flex items-center justify-end gap-3 border-t border-zinc-800 pt-4">
+              <button
+                type="button"
+                onClick={() => setShowDeleteAllModal(false)}
+                className="rounded-xl border border-zinc-800 bg-zinc-900 px-4 py-2 text-xs font-medium text-zinc-300 transition hover:bg-zinc-800"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                id="btn-confirm-delete-all-catalog"
+                onClick={handleConfirmDeleteAll}
+                className="flex items-center gap-2 rounded-xl bg-rose-600 px-5 py-2 text-xs font-bold text-white shadow-lg shadow-rose-950/60 transition hover:bg-rose-500"
+              >
+                <Trash2 className="h-4 w-4" />
+                <span>Sim, Excluir Todos os {catalog.length} Materiais</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Excel Catalog Import Modal */}
       {onSaveCatalog && onSaveSettings && (

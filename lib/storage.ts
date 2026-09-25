@@ -260,9 +260,9 @@ function getCatalogSnapshot(): CatalogItem[] {
   if (typeof window === 'undefined') return STATIC_CATALOG;
   try {
     const saved = localStorage.getItem(STORAGE_KEYS.CATALOG);
-    if (saved) {
+    if (saved !== null) {
       const parsed = JSON.parse(saved);
-      if (Array.isArray(parsed) && parsed.length > 0) {
+      if (Array.isArray(parsed)) {
         const sanitized = parsed.map((it, idx) => sanitizeCatalogItem(it, idx));
         cachedCatalog = sanitized;
         return sanitized;
@@ -281,9 +281,9 @@ function getListsSnapshot(): MaterialList[] {
   if (typeof window === 'undefined') return STATIC_LISTS;
   try {
     const saved = localStorage.getItem(STORAGE_KEYS.LISTS);
-    if (saved) {
+    if (saved !== null) {
       const parsed = JSON.parse(saved);
-      if (Array.isArray(parsed) && parsed.length > 0) {
+      if (Array.isArray(parsed)) {
         const sanitized = parsed.map((l, idx) => sanitizeMaterialList(l, idx));
         cachedLists = sanitized;
         return sanitized;
@@ -302,9 +302,9 @@ function getRequisitionsSnapshot(): SupplyRequisition[] {
   if (typeof window === 'undefined') return STATIC_REQUISITIONS;
   try {
     const saved = localStorage.getItem(STORAGE_KEYS.REQUISITIONS);
-    if (saved) {
+    if (saved !== null) {
       const parsed = JSON.parse(saved);
-      if (Array.isArray(parsed) && parsed.length > 0) {
+      if (Array.isArray(parsed)) {
         const sanitized = parsed.map((r, idx) => sanitizeRequisition(r, idx));
         cachedRequisitions = sanitized;
         return sanitized;
@@ -432,6 +432,20 @@ export function useIndustrialStorage() {
     const currentCatalog = getCatalogSnapshot();
     const updated = currentCatalog.filter((item) => item.id !== id);
     saveCatalog(updated);
+  }, [saveCatalog]);
+
+  // Delete multiple Catalog Items at once
+  const deleteMultipleCatalogItems = useCallback((ids: string[]) => {
+    if (!ids || ids.length === 0) return;
+    const idsSet = new Set(ids);
+    const currentCatalog = getCatalogSnapshot();
+    const updated = currentCatalog.filter((item) => !idsSet.has(item.id));
+    saveCatalog(updated);
+  }, [saveCatalog]);
+
+  // Clear / Delete all Catalog Items
+  const clearAllCatalogItems = useCallback(() => {
+    saveCatalog([]);
   }, [saveCatalog]);
 
   // Reset Catalog to Default Database
@@ -652,6 +666,54 @@ export function useIndustrialStorage() {
     saveSettings({ ...currentSettings, groups: updatedGroups });
   }, [saveSettings]);
 
+  // Edit Group (and cascade to catalog and lists)
+  const editGroup = useCallback((oldName: string, newName: string) => {
+    const trimmedOld = oldName.trim();
+    const trimmedNew = newName.trim();
+    if (!trimmedOld || !trimmedNew || trimmedOld === trimmedNew) return;
+
+    // 1. Update settings
+    const currentSettings = getSettingsSnapshot();
+    const updatedGroups = currentSettings.groups.map((g) => (g === trimmedOld ? trimmedNew : g));
+    saveSettings({ ...currentSettings, groups: updatedGroups });
+
+    // 2. Cascade update to catalog
+    const currentCatalog = getCatalogSnapshot();
+    let hasChanges = false;
+    const updatedCatalog = currentCatalog.map((item) => {
+      if (item.group === trimmedOld) {
+        hasChanges = true;
+        return { ...item, group: trimmedNew };
+      }
+      return item;
+    });
+    if (hasChanges) {
+      saveCatalog(updatedCatalog);
+    }
+
+    // 3. Cascade update to lists
+    const currentLists = getListsSnapshot();
+    let listsChanged = false;
+    const updatedLists = currentLists.map((list) => {
+      let listItemsChanged = false;
+      const updatedItems = list.items.map((it) => {
+        if (it.group === trimmedOld) {
+          listItemsChanged = true;
+          return { ...it, group: trimmedNew };
+        }
+        return it;
+      });
+      if (listItemsChanged) {
+        listsChanged = true;
+        return { ...list, items: updatedItems, updatedAt: new Date().toISOString() };
+      }
+      return list;
+    });
+    if (listsChanged) {
+      saveLists(updatedLists);
+    }
+  }, [saveSettings, saveCatalog, saveLists]);
+
   // Delete Group
   const deleteGroup = useCallback((groupName: string) => {
     const currentSettings = getSettingsSnapshot();
@@ -667,6 +729,54 @@ export function useIndustrialStorage() {
     const updatedUnits = [...currentSettings.units, trimmed];
     saveSettings({ ...currentSettings, units: updatedUnits });
   }, [saveSettings]);
+
+  // Edit Unit (and cascade to catalog and lists)
+  const editUnit = useCallback((oldUnit: string, newUnit: string) => {
+    const trimmedOld = oldUnit.trim().toUpperCase();
+    const trimmedNew = newUnit.trim().toUpperCase();
+    if (!trimmedOld || !trimmedNew || trimmedOld === trimmedNew) return;
+
+    // 1. Update settings
+    const currentSettings = getSettingsSnapshot();
+    const updatedUnits = currentSettings.units.map((u) => (u.toUpperCase() === trimmedOld ? trimmedNew : u));
+    saveSettings({ ...currentSettings, units: updatedUnits });
+
+    // 2. Cascade update to catalog
+    const currentCatalog = getCatalogSnapshot();
+    let hasChanges = false;
+    const updatedCatalog = currentCatalog.map((item) => {
+      if ((item.unit || '').toUpperCase() === trimmedOld) {
+        hasChanges = true;
+        return { ...item, unit: trimmedNew };
+      }
+      return item;
+    });
+    if (hasChanges) {
+      saveCatalog(updatedCatalog);
+    }
+
+    // 3. Cascade update to lists
+    const currentLists = getListsSnapshot();
+    let listsChanged = false;
+    const updatedLists = currentLists.map((list) => {
+      let listItemsChanged = false;
+      const updatedItems = list.items.map((it) => {
+        if ((it.unit || '').toUpperCase() === trimmedOld) {
+          listItemsChanged = true;
+          return { ...it, unit: trimmedNew };
+        }
+        return it;
+      });
+      if (listItemsChanged) {
+        listsChanged = true;
+        return { ...list, items: updatedItems, updatedAt: new Date().toISOString() };
+      }
+      return list;
+    });
+    if (listsChanged) {
+      saveLists(updatedLists);
+    }
+  }, [saveSettings, saveCatalog, saveLists]);
 
   // Delete Unit
   const deleteUnit = useCallback((unitName: string) => {
@@ -726,6 +836,8 @@ export function useIndustrialStorage() {
     saveCatalog,
     saveCatalogItem,
     deleteCatalogItem,
+    deleteMultipleCatalogItems,
+    clearAllCatalogItems,
     resetCatalogToDefault,
     regenerateAllCodes,
     saveList,
@@ -738,8 +850,10 @@ export function useIndustrialStorage() {
     convertRequisitionToBOM,
     saveSettings,
     addGroup,
+    editGroup,
     deleteGroup,
     addUnit,
+    editUnit,
     deleteUnit,
     exportBackupJSON,
     importBackupJSON,
