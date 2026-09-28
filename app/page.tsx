@@ -48,6 +48,13 @@ export default function Home() {
     deleteUnit,
     exportBackupJSON,
     importBackupJSON,
+    syncStatus,
+    activeDatabaseProvider,
+    switchDatabaseProvider,
+    getSavedSupabaseConfig,
+    saveSupabaseConfig,
+    testSupabaseConnection,
+    SUPABASE_SETUP_SQL,
   } = useIndustrialStorage();
 
   // Navigation & View states
@@ -287,6 +294,13 @@ export default function Home() {
           requisitionsCount={requisitions.length}
           pendingRequisitionsCount={pendingReqsCount}
           settings={settings}
+          syncStatus={syncStatus}
+          activeDatabaseProvider={activeDatabaseProvider}
+          onSwitchDatabaseProvider={switchDatabaseProvider}
+          supabaseConfig={getSavedSupabaseConfig()}
+          onSaveSupabaseConfig={saveSupabaseConfig}
+          testSupabase={testSupabaseConnection}
+          supabaseSQL={SUPABASE_SETUP_SQL}
         />
 
         {/* Main Container */}
@@ -376,6 +390,12 @@ export default function Home() {
               onImportBackup={importBackupJSON}
               onResetCatalog={resetCatalogToDefault}
               onRegenerateAllCodes={regenerateAllCodes}
+              activeDatabaseProvider={activeDatabaseProvider}
+              onSwitchDatabaseProvider={switchDatabaseProvider}
+              supabaseConfig={getSavedSupabaseConfig()}
+              onSaveSupabaseConfig={saveSupabaseConfig}
+              testSupabase={testSupabaseConnection}
+              supabaseSQL={SUPABASE_SETUP_SQL}
             />
           )}
         </main>

@@ -1,0 +1,42 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    // Catalog items
+    match /catalog/{itemId} {
+      allow read: if true;
+      allow create, update, delete: if isValidId(itemId);
+    }
+
+    // Material lists (BOM)
+    match /lists/{listId} {
+      allow read: if true;
+      allow create, update, delete: if isValidId(listId);
+    }
+
+    // Supply requisitions
+    match /requisitions/{requisitionId} {
+      allow read: if true;
+      allow create, update, delete: if isValidId(requisitionId);
+    }
+
+    // App settings
+    match /settings/{settingsId} {
+      allow read: if true;
+      allow create, update, delete: if isValidId(settingsId);
+    }
+
+    // Connection test document
+    match /test/{docId} {
+      allow read, write: if true;
+    }
+
+    // Global default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

@@ -1,0 +1,113 @@
+{
+  "entities": {
+    "CatalogItem": {
+      "title": "Catalog Item",
+      "description": "Industrial catalog material or supply item",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "code": { "type": "string", "maxLength": 64 },
+        "description": { "type": "string", "maxLength": 500 },
+        "unit": { "type": "string", "maxLength": 32 },
+        "group": { "type": "string", "maxLength": 100 },
+        "cost": { "type": "number" },
+        "weightBar": { "type": "number" },
+        "notes": { "type": "string", "maxLength": 1000 },
+        "updatedAt": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["id", "code", "description", "unit", "group"]
+    },
+    "MaterialList": {
+      "title": "Material List (BOM)",
+      "description": "Bill of Materials or production list",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "name": { "type": "string", "maxLength": 200 },
+        "machine": { "type": "string", "maxLength": 200 },
+        "client": { "type": "string", "maxLength": 200 },
+        "responsible": { "type": "string", "maxLength": 200 },
+        "date": { "type": "string", "maxLength": 64 },
+        "deliveryDate": { "type": "string", "maxLength": 64 },
+        "status": { "type": "string", "maxLength": 64 },
+        "notes": { "type": "string", "maxLength": 2000 },
+        "items": { "type": "array" },
+        "createdAt": { "type": "string", "maxLength": 64 },
+        "updatedAt": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["id", "name"]
+    },
+    "SupplyRequisition": {
+      "title": "Supply Requisition",
+      "description": "Internal requisition for workshop or supplies",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "protocol": { "type": "string", "maxLength": 64 },
+        "title": { "type": "string", "maxLength": 200 },
+        "requesterName": { "type": "string", "maxLength": 200 },
+        "sector": { "type": "string", "maxLength": 100 },
+        "destinationMachine": { "type": "string", "maxLength": 200 },
+        "priority": { "type": "string", "maxLength": 64 },
+        "neededByDate": { "type": "string", "maxLength": 64 },
+        "status": { "type": "string", "maxLength": 64 },
+        "justification": { "type": "string", "maxLength": 2000 },
+        "notes": { "type": "string", "maxLength": 2000 },
+        "items": { "type": "array" },
+        "createdAt": { "type": "string", "maxLength": 64 },
+        "updatedAt": { "type": "string", "maxLength": 64 }
+      },
+      "required": ["id", "protocol", "title"]
+    },
+    "AppSettings": {
+      "title": "App Settings",
+      "description": "Application preferences, branding, templates and configurations",
+      "type": "object",
+      "properties": {
+        "appName": { "type": "string", "maxLength": 200 },
+        "appLogo": { "type": "string", "maxLength": 500000 },
+        "companyName": { "type": "string", "maxLength": 200 },
+        "companyLogo": { "type": "string", "maxLength": 500000 },
+        "companyPhone": { "type": "string", "maxLength": 64 },
+        "companyEmail": { "type": "string", "maxLength": 128 },
+        "companyCnpj": { "type": "string", "maxLength": 64 },
+        "companyAddress": { "type": "string", "maxLength": 300 },
+        "defaultResponsible": { "type": "string", "maxLength": 200 },
+        "currencySymbol": { "type": "string", "maxLength": 16 },
+        "groups": { "type": "array" },
+        "units": { "type": "array" },
+        "whatsAppTemplate": { "type": "string", "maxLength": 2000 },
+        "pdfTemplate": { "type": "string", "maxLength": 64 },
+        "pdfThemeColor": { "type": "string", "maxLength": 64 },
+        "pdfShowLogo": { "type": "boolean" },
+        "pdfShowPrices": { "type": "boolean" },
+        "pdfShowWeights": { "type": "boolean" },
+        "pdfShowSignatures": { "type": "boolean" },
+        "pdfShowNotes": { "type": "boolean" },
+        "pdfFooterText": { "type": "string", "maxLength": 500 },
+        "excelTemplate": { "type": "string", "maxLength": 64 },
+        "excelShowPrices": { "type": "boolean" },
+        "excelShowWeights": { "type": "boolean" },
+        "updatedAt": { "type": "string", "maxLength": 64 }
+      }
+    }
+  },
+  "firestore": {
+    "/catalog/{itemId}": {
+      "schema": "CatalogItem",
+      "description": "Catalog of industrial materials and supplies"
+    },
+    "/lists/{listId}": {
+      "schema": "MaterialList",
+      "description": "Production lists and Bills of Materials"
+    },
+    "/requisitions/{requisitionId}": {
+      "schema": "SupplyRequisition",
+      "description": "Supply requests and requisitions"
+    },
+    "/settings/{settingsId}": {
+      "schema": "AppSettings",
+      "description": "App branding, system parameters, and print template configurations"
+    }
+  }
+}

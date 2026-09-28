@@ -46,6 +46,14 @@ export type PDFTemplateType = 'modern' | 'corporate' | 'workshop' | 'quote';
 export type ExcelTemplateType = 'complete' | 'engineering' | 'procurement';
 export type PDFThemeColor = 'navy' | 'cyan' | 'emerald' | 'slate' | 'crimson';
 
+export type DatabaseProvider = 'firebase' | 'supabase';
+
+export interface SupabaseConfig {
+  url: string;
+  anonKey: string;
+  isConnected?: boolean;
+}
+
 export interface AppSettings {
   appName?: string; // Custom application/system name (e.g. ListaPro Industrial)
   appLogo?: string; // Base64 data URL for program/system logo in navbar
@@ -60,6 +68,11 @@ export interface AppSettings {
   defaultResponsible: string;
   currencySymbol: string;
   whatsAppTemplate: string;
+
+  // Cloud Database Provider Selection & Config
+  databaseProvider?: DatabaseProvider;
+  supabaseConfig?: SupabaseConfig;
+  lastBackupDate?: string;
 
   // PDF Template Customization
   pdfTemplate?: PDFTemplateType;

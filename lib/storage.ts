@@ -19,12 +19,39 @@ import {
   INITIAL_SAMPLE_REQUISITIONS,
 } from './seedData';
 import { getNextCodeForGroup, getGroupPrefix, regenerateAllCatalogCodes } from './codeUtils';
+import {
+  db,
+  handleFirestoreError,
+  OperationType,
+  testFirestoreConnection,
+} from './firebase';
+import {
+  collection,
+  doc,
+  setDoc,
+  deleteDoc,
+  writeBatch,
+  getDocs,
+  onSnapshot,
+} from 'firebase/firestore';
+import {
+  getSavedSupabaseConfig,
+  saveSupabaseConfig,
+  syncDataToSupabase,
+  loadDataFromSupabase,
+  testSupabaseConnection,
+  getSupabaseClient,
+  SUPABASE_SETUP_SQL,
+} from './supabase';
+import { DatabaseProvider, SupabaseConfig } from './types';
 
 const STORAGE_KEYS = {
   CATALOG: 'industrial_catalog_items_v1',
   LISTS: 'industrial_material_lists_v1',
   REQUISITIONS: 'industrial_requisitions_v1',
   SETTINGS: 'industrial_app_settings_v1',
+  ACTIVE_PROVIDER: 'industrial_active_database_provider_v1',
+  LAST_BACKUP: 'industrial_last_backup_timestamp_v1',
 };
 
 /**
@@ -228,11 +255,306 @@ let cachedCatalog: CatalogItem[] | null = null;
 let cachedLists: MaterialList[] | null = null;
 let cachedRequisitions: SupplyRequisition[] | null = null;
 let cachedSettings: AppSettings | null = null;
+let cloudSyncStatus: 'synced' | 'syncing' | 'offline' = 'syncing';
+let isFirestoreInitialized = false;
 
 const listeners = new Set<() => void>();
 
 function notify() {
   listeners.forEach((listener) => listener());
+}
+
+async function seedCatalogToFirestore(items: CatalogItem[]) {
+  if (!items || items.length === 0) return;
+  try {
+    const chunkSize = 200;
+    for (let i = 0; i < items.length; i += chunkSize) {
+      const chunk = items.slice(i, i + chunkSize);
+      const batch = writeBatch(db);
+      chunk.forEach((it) => {
+        batch.set(doc(db, 'catalog', it.id), it);
+      });
+      await batch.commit();
+    }
+  } catch (e) {
+    handleFirestoreError(e, OperationType.WRITE, 'catalog');
+  }
+}
+
+async function seedListsToFirestore(lists: MaterialList[]) {
+  if (!lists || lists.length === 0) return;
+  try {
+    const batch = writeBatch(db);
+    lists.forEach((l) => {
+      batch.set(doc(db, 'lists', l.id), l);
+    });
+    await batch.commit();
+  } catch (e) {
+    handleFirestoreError(e, OperationType.WRITE, 'lists');
+  }
+}
+
+async function seedRequisitionsToFirestore(reqs: SupplyRequisition[]) {
+  if (!reqs || reqs.length === 0) return;
+  try {
+    const batch = writeBatch(db);
+    reqs.forEach((r) => {
+      batch.set(doc(db, 'requisitions', r.id), r);
+    });
+    await batch.commit();
+  } catch (e) {
+    handleFirestoreError(e, OperationType.WRITE, 'requisitions');
+  }
+}
+
+function initFirestoreSync() {
+  if (typeof window === 'undefined' || isFirestoreInitialized) return;
+  isFirestoreInitialized = true;
+
+  testFirestoreConnection().catch(() => {
+    cloudSyncStatus = 'offline';
+    notify();
+  });
+
+  // 1. Real-time Catalog Sync
+  try {
+    const catalogCol = collection(db, 'catalog');
+    onSnapshot(
+      catalogCol,
+      (snapshot) => {
+        if (!snapshot.empty) {
+          const items: CatalogItem[] = [];
+          snapshot.forEach((d) => {
+            items.push(sanitizeCatalogItem({ ...d.data(), id: d.id }));
+          });
+          cachedCatalog = items;
+          try {
+            localStorage.setItem(STORAGE_KEYS.CATALOG, JSON.stringify(items));
+          } catch {}
+          cloudSyncStatus = 'synced';
+          notify();
+        } else {
+          const localCatalog = getCatalogSnapshot();
+          if (localCatalog && localCatalog.length > 0) {
+            seedCatalogToFirestore(localCatalog);
+          }
+        }
+      },
+      (error) => {
+        cloudSyncStatus = 'offline';
+        notify();
+        handleFirestoreError(error, OperationType.LIST, 'catalog');
+      }
+    );
+  } catch (err) {
+    console.warn('Firestore catalog listener:', err);
+  }
+
+  // 2. Real-time Lists Sync
+  try {
+    const listsCol = collection(db, 'lists');
+    onSnapshot(
+      listsCol,
+      (snapshot) => {
+        if (!snapshot.empty) {
+          const loadedLists: MaterialList[] = [];
+          snapshot.forEach((d) => {
+            loadedLists.push(sanitizeMaterialList({ ...d.data(), id: d.id }));
+          });
+          cachedLists = loadedLists;
+          try {
+            localStorage.setItem(STORAGE_KEYS.LISTS, JSON.stringify(loadedLists));
+          } catch {}
+          cloudSyncStatus = 'synced';
+          notify();
+        } else {
+          const localLists = getListsSnapshot();
+          if (localLists && localLists.length > 0) {
+            seedListsToFirestore(localLists);
+          }
+        }
+      },
+      (error) => {
+        handleFirestoreError(error, OperationType.LIST, 'lists');
+      }
+    );
+  } catch (err) {
+    console.warn('Firestore lists listener:', err);
+  }
+
+  // 3. Real-time Requisitions Sync
+  try {
+    const reqsCol = collection(db, 'requisitions');
+    onSnapshot(
+      reqsCol,
+      (snapshot) => {
+        if (!snapshot.empty) {
+          const loadedReqs: SupplyRequisition[] = [];
+          snapshot.forEach((d) => {
+            loadedReqs.push(sanitizeRequisition({ ...d.data(), id: d.id }));
+          });
+          cachedRequisitions = loadedReqs;
+          try {
+            localStorage.setItem(STORAGE_KEYS.REQUISITIONS, JSON.stringify(loadedReqs));
+          } catch {}
+          cloudSyncStatus = 'synced';
+          notify();
+        } else {
+          const localReqs = getRequisitionsSnapshot();
+          if (localReqs && localReqs.length > 0) {
+            seedRequisitionsToFirestore(localReqs);
+          }
+        }
+      },
+      (error) => {
+        handleFirestoreError(error, OperationType.LIST, 'requisitions');
+      }
+    );
+  } catch (err) {
+    console.warn('Firestore requisitions listener:', err);
+  }
+
+  // 4. Real-time Settings Sync
+  try {
+    const settingsDoc = doc(db, 'settings', 'default');
+    onSnapshot(
+      settingsDoc,
+      (snapshot) => {
+        if (snapshot.exists()) {
+          const data = snapshot.data();
+          const merged: AppSettings = { ...STATIC_SETTINGS, ...data };
+          cachedSettings = merged;
+          try {
+            localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(merged));
+          } catch {}
+          cloudSyncStatus = 'synced';
+          notify();
+        } else {
+          const localSettings = getSettingsSnapshot();
+          setDoc(settingsDoc, localSettings).catch((e) =>
+            handleFirestoreError(e, OperationType.WRITE, 'settings/default')
+          );
+        }
+      },
+      (error) => {
+        handleFirestoreError(error, OperationType.GET, 'settings/default');
+      }
+    );
+  } catch (err) {
+    console.warn('Firestore settings listener:', err);
+  }
+}
+
+let isSupabaseSyncRunning = false;
+let cachedActiveProvider: DatabaseProvider = 'firebase';
+
+export function getActiveDatabaseProviderSnapshot(): DatabaseProvider {
+  if (typeof window === 'undefined') return 'firebase';
+  const saved = localStorage.getItem(STORAGE_KEYS.ACTIVE_PROVIDER);
+  if (saved === 'supabase' || saved === 'firebase') {
+    cachedActiveProvider = saved;
+    return saved;
+  }
+  return 'firebase';
+}
+
+export function getLastBackupTimestampSnapshot(): number {
+  if (typeof window === 'undefined') return 0;
+  const saved = localStorage.getItem(STORAGE_KEYS.LAST_BACKUP);
+  return saved ? Number(saved) || 0 : 0;
+}
+
+async function initSupabaseSync() {
+  if (typeof window === 'undefined' || isSupabaseSyncRunning) return;
+  isSupabaseSyncRunning = true;
+
+  const client = getSupabaseClient();
+  if (!client) {
+    cloudSyncStatus = 'offline';
+    notify();
+    isSupabaseSyncRunning = false;
+    return;
+  }
+
+  cloudSyncStatus = 'syncing';
+  notify();
+
+  try {
+    // 1. Catalog
+    const remoteCatalog = (await loadDataFromSupabase('catalog')) as CatalogItem[] | null;
+    if (remoteCatalog && Array.isArray(remoteCatalog) && remoteCatalog.length > 0) {
+      const sanitized = remoteCatalog.map((it, idx) => sanitizeCatalogItem(it, idx));
+      cachedCatalog = sanitized;
+      try {
+        localStorage.setItem(STORAGE_KEYS.CATALOG, JSON.stringify(sanitized));
+      } catch {}
+    } else {
+      const local = getCatalogSnapshot();
+      if (local && local.length > 0) {
+        await syncDataToSupabase('catalog', local);
+      }
+    }
+
+    // 2. Lists
+    const remoteLists = (await loadDataFromSupabase('lists')) as MaterialList[] | null;
+    if (remoteLists && Array.isArray(remoteLists) && remoteLists.length > 0) {
+      const sanitized = remoteLists.map((l, idx) => sanitizeMaterialList(l, idx));
+      cachedLists = sanitized;
+      try {
+        localStorage.setItem(STORAGE_KEYS.LISTS, JSON.stringify(sanitized));
+      } catch {}
+    } else {
+      const localLists = getListsSnapshot();
+      if (localLists && localLists.length > 0) {
+        await syncDataToSupabase('lists', localLists);
+      }
+    }
+
+    // 3. Requisitions
+    const remoteReqs = (await loadDataFromSupabase('requisitions')) as SupplyRequisition[] | null;
+    if (remoteReqs && Array.isArray(remoteReqs) && remoteReqs.length > 0) {
+      const sanitized = remoteReqs.map((r, idx) => sanitizeRequisition(r, idx));
+      cachedRequisitions = sanitized;
+      try {
+        localStorage.setItem(STORAGE_KEYS.REQUISITIONS, JSON.stringify(sanitized));
+      } catch {}
+    } else {
+      const localReqs = getRequisitionsSnapshot();
+      if (localReqs && localReqs.length > 0) {
+        await syncDataToSupabase('requisitions', localReqs);
+      }
+    }
+
+    // 4. Settings
+    const remoteSettings = (await loadDataFromSupabase('settings')) as AppSettings | null;
+    if (remoteSettings) {
+      const merged: AppSettings = { ...STATIC_SETTINGS, ...remoteSettings };
+      cachedSettings = merged;
+      try {
+        localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(merged));
+      } catch {}
+    } else {
+      const localSettings = getSettingsSnapshot();
+      await syncDataToSupabase('settings', localSettings);
+    }
+
+    cloudSyncStatus = 'synced';
+  } catch (err) {
+    console.error('Supabase sync error:', err);
+    cloudSyncStatus = 'offline';
+  } finally {
+    isSupabaseSyncRunning = false;
+    notify();
+  }
+}
+
+function initActiveDatabaseSync() {
+  const provider = getActiveDatabaseProviderSnapshot();
+  if (provider === 'firebase') {
+    initFirestoreSync();
+  } else if (provider === 'supabase') {
+    initSupabaseSync();
+  }
 }
 
 function subscribe(callback: () => void) {
@@ -349,6 +671,10 @@ const getIsLoadedClientSnapshot = () => true;
 const getIsLoadedServerSnapshot = () => false;
 
 export function useIndustrialStorage() {
+  if (typeof window !== 'undefined') {
+    initActiveDatabaseSync();
+  }
+
   const catalog = useSyncExternalStore(
     subscribe,
     getCatalogSnapshot,
@@ -380,6 +706,24 @@ export function useIndustrialStorage() {
     getIsLoadedServerSnapshot
   );
 
+  const syncStatus = useSyncExternalStore(
+    subscribe,
+    () => cloudSyncStatus,
+    () => 'syncing' as const
+  );
+
+  const activeDatabaseProvider = useSyncExternalStore(
+    subscribe,
+    getActiveDatabaseProviderSnapshot,
+    () => 'firebase' as DatabaseProvider
+  );
+
+  const lastBackupTimestamp = useSyncExternalStore(
+    subscribe,
+    getLastBackupTimestampSnapshot,
+    () => 0
+  );
+
   // Save Catalog
   const saveCatalog = useCallback((newCatalog: CatalogItem[]) => {
     const sanitized = Array.isArray(newCatalog)
@@ -392,6 +736,13 @@ export function useIndustrialStorage() {
       console.error('Error saving catalog:', e);
     }
     notify();
+
+    const prov = getActiveDatabaseProviderSnapshot();
+    if (prov === 'firebase') {
+      seedCatalogToFirestore(sanitized);
+    } else if (prov === 'supabase') {
+      syncDataToSupabase('catalog', sanitized);
+    }
   }, []);
 
   // Add/Save Item to Catalog
@@ -400,29 +751,48 @@ export function useIndustrialStorage() {
     id?: string
   ) => {
     const currentCatalog = getCatalogSnapshot();
+    const prov = getActiveDatabaseProviderSnapshot();
+
     if (id) {
       // Editing existing item - keep code locked/immutable
       const existing = currentCatalog.find((it) => it.id === id);
       const safeCode = existing?.code || item.code || getNextCodeForGroup(item.group, currentCatalog);
+      const updatedItem = sanitizeCatalogItem({ ...existing, ...item, id, code: safeCode });
       const updated = currentCatalog.map((it) =>
-        it.id === id ? { ...it, ...item, code: safeCode } : it
+        it.id === id ? updatedItem : it
       );
       saveCatalog(updated);
-      return updated.find((it) => it.id === id);
+
+      if (prov === 'firebase') {
+        setDoc(doc(db, 'catalog', id), updatedItem).catch((e) =>
+          handleFirestoreError(e, OperationType.UPDATE, `catalog/${id}`)
+        );
+      } else if (prov === 'supabase') {
+        syncDataToSupabase('catalog', updated);
+      }
+      return updatedItem;
     } else {
       // Creating new item - assign sequential code based on selected group
       const assignedCode =
         item.code?.trim().toUpperCase() ||
         getNextCodeForGroup(item.group || 'INSUMOS GERAIS', currentCatalog);
 
-      const newItem: CatalogItem = {
+      const newItem: CatalogItem = sanitizeCatalogItem({
         ...item,
         code: assignedCode,
         id: `item-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
         createdAt: new Date().toISOString(),
-      };
+      });
       const updated = [newItem, ...currentCatalog];
       saveCatalog(updated);
+
+      if (prov === 'firebase') {
+        setDoc(doc(db, 'catalog', newItem.id), newItem).catch((e) =>
+          handleFirestoreError(e, OperationType.CREATE, `catalog/${newItem.id}`)
+        );
+      } else if (prov === 'supabase') {
+        syncDataToSupabase('catalog', updated);
+      }
       return newItem;
     }
   }, [saveCatalog]);
@@ -432,6 +802,15 @@ export function useIndustrialStorage() {
     const currentCatalog = getCatalogSnapshot();
     const updated = currentCatalog.filter((item) => item.id !== id);
     saveCatalog(updated);
+
+    const prov = getActiveDatabaseProviderSnapshot();
+    if (prov === 'firebase') {
+      deleteDoc(doc(db, 'catalog', id)).catch((e) =>
+        handleFirestoreError(e, OperationType.DELETE, `catalog/${id}`)
+      );
+    } else if (prov === 'supabase') {
+      syncDataToSupabase('catalog', updated);
+    }
   }, [saveCatalog]);
 
   // Delete multiple Catalog Items at once
@@ -441,11 +820,39 @@ export function useIndustrialStorage() {
     const currentCatalog = getCatalogSnapshot();
     const updated = currentCatalog.filter((item) => !idsSet.has(item.id));
     saveCatalog(updated);
+
+    const prov = getActiveDatabaseProviderSnapshot();
+    if (prov === 'firebase') {
+      try {
+        const batch = writeBatch(db);
+        ids.forEach((id) => batch.delete(doc(db, 'catalog', id)));
+        batch.commit().catch((e) =>
+          handleFirestoreError(e, OperationType.DELETE, 'catalog')
+        );
+      } catch (e) {
+        console.error('Error batch deleting items:', e);
+      }
+    } else if (prov === 'supabase') {
+      syncDataToSupabase('catalog', updated);
+    }
   }, [saveCatalog]);
 
   // Clear / Delete all Catalog Items
-  const clearAllCatalogItems = useCallback(() => {
+  const clearAllCatalogItems = useCallback(async () => {
     saveCatalog([]);
+    const prov = getActiveDatabaseProviderSnapshot();
+    if (prov === 'firebase') {
+      try {
+        const snap = await getDocs(collection(db, 'catalog'));
+        const batch = writeBatch(db);
+        snap.forEach((d) => batch.delete(d.ref));
+        await batch.commit();
+      } catch (e) {
+        handleFirestoreError(e, OperationType.DELETE, 'catalog');
+      }
+    } else if (prov === 'supabase') {
+      await syncDataToSupabase('catalog', []);
+    }
   }, [saveCatalog]);
 
   // Reset Catalog to Default Database
@@ -477,6 +884,13 @@ export function useIndustrialStorage() {
       console.error('Error saving lists:', e);
     }
     notify();
+
+    const prov = getActiveDatabaseProviderSnapshot();
+    if (prov === 'firebase') {
+      seedListsToFirestore(sanitized);
+    } else if (prov === 'supabase') {
+      syncDataToSupabase('lists', sanitized);
+    }
   }, []);
 
   // Add or Update Material List
@@ -485,7 +899,7 @@ export function useIndustrialStorage() {
     const exists = currentLists.some((l) => l.id === list.id);
     let updated: MaterialList[];
     const timestampedList = {
-      ...list,
+      ...sanitizeMaterialList(list),
       updatedAt: new Date().toISOString(),
     };
 
@@ -495,6 +909,15 @@ export function useIndustrialStorage() {
       updated = [timestampedList, ...currentLists];
     }
     saveLists(updated);
+
+    const prov = getActiveDatabaseProviderSnapshot();
+    if (prov === 'firebase') {
+      setDoc(doc(db, 'lists', timestampedList.id), timestampedList).catch((e) =>
+        handleFirestoreError(e, OperationType.WRITE, `lists/${timestampedList.id}`)
+      );
+    } else if (prov === 'supabase') {
+      syncDataToSupabase('lists', updated);
+    }
     return timestampedList;
   }, [saveLists]);
 
@@ -503,6 +926,15 @@ export function useIndustrialStorage() {
     const currentLists = getListsSnapshot();
     const updated = currentLists.filter((l) => l.id !== id);
     saveLists(updated);
+
+    const prov = getActiveDatabaseProviderSnapshot();
+    if (prov === 'firebase') {
+      deleteDoc(doc(db, 'lists', id)).catch((e) =>
+        handleFirestoreError(e, OperationType.DELETE, `lists/${id}`)
+      );
+    } else if (prov === 'supabase') {
+      syncDataToSupabase('lists', updated);
+    }
   }, [saveLists]);
 
   // Duplicate Material List
@@ -525,6 +957,15 @@ export function useIndustrialStorage() {
 
     const updated = [cloned, ...currentLists];
     saveLists(updated);
+
+    const prov = getActiveDatabaseProviderSnapshot();
+    if (prov === 'firebase') {
+      setDoc(doc(db, 'lists', cloned.id), cloned).catch((e) =>
+        handleFirestoreError(e, OperationType.WRITE, `lists/${cloned.id}`)
+      );
+    } else if (prov === 'supabase') {
+      syncDataToSupabase('lists', updated);
+    }
     return cloned;
   }, [saveLists]);
 
@@ -540,6 +981,13 @@ export function useIndustrialStorage() {
       console.error('Error saving requisitions:', e);
     }
     notify();
+
+    const prov = getActiveDatabaseProviderSnapshot();
+    if (prov === 'firebase') {
+      seedRequisitionsToFirestore(sanitized);
+    } else if (prov === 'supabase') {
+      syncDataToSupabase('requisitions', sanitized);
+    }
   }, []);
 
   // Add or Update Supply Requisition
@@ -559,6 +1007,15 @@ export function useIndustrialStorage() {
       updated = [sanitizedReq, ...current];
     }
     saveRequisitions(updated);
+
+    const prov = getActiveDatabaseProviderSnapshot();
+    if (prov === 'firebase') {
+      setDoc(doc(db, 'requisitions', sanitizedReq.id), sanitizedReq).catch((e) =>
+        handleFirestoreError(e, OperationType.WRITE, `requisitions/${sanitizedReq.id}`)
+      );
+    } else if (prov === 'supabase') {
+      syncDataToSupabase('requisitions', updated);
+    }
     return sanitizedReq;
   }, [saveRequisitions]);
 
@@ -567,6 +1024,15 @@ export function useIndustrialStorage() {
     const current = getRequisitionsSnapshot();
     const updated = current.filter((r) => r.id !== id);
     saveRequisitions(updated);
+
+    const prov = getActiveDatabaseProviderSnapshot();
+    if (prov === 'firebase') {
+      deleteDoc(doc(db, 'requisitions', id)).catch((e) =>
+        handleFirestoreError(e, OperationType.DELETE, `requisitions/${id}`)
+      );
+    } else if (prov === 'supabase') {
+      syncDataToSupabase('requisitions', updated);
+    }
   }, [saveRequisitions]);
 
   // Update Requisition Status
@@ -574,10 +1040,20 @@ export function useIndustrialStorage() {
     const current = getRequisitionsSnapshot();
     const target = current.find((r) => r.id === id);
     if (!target) return;
+    const updatedReq = { ...target, status, updatedAt: new Date().toISOString() };
     const updated = current.map((r) =>
-      r.id === id ? { ...r, status, updatedAt: new Date().toISOString() } : r
+      r.id === id ? updatedReq : r
     );
     saveRequisitions(updated);
+
+    const prov = getActiveDatabaseProviderSnapshot();
+    if (prov === 'firebase') {
+      setDoc(doc(db, 'requisitions', id), updatedReq).catch((e) =>
+        handleFirestoreError(e, OperationType.UPDATE, `requisitions/${id}`)
+      );
+    } else if (prov === 'supabase') {
+      syncDataToSupabase('requisitions', updated);
+    }
   }, [saveRequisitions]);
 
   // Convert Requisition into an official Material List (BOM)
@@ -655,6 +1131,15 @@ export function useIndustrialStorage() {
       }
     }
     notify();
+
+    const prov = getActiveDatabaseProviderSnapshot();
+    if (prov === 'firebase') {
+      setDoc(doc(db, 'settings', 'default'), newSettings).catch((e) =>
+        handleFirestoreError(e, OperationType.WRITE, 'settings/default')
+      );
+    } else if (prov === 'supabase') {
+      syncDataToSupabase('settings', newSettings);
+    }
   }, []);
 
   // Add Group
@@ -785,11 +1270,13 @@ export function useIndustrialStorage() {
     saveSettings({ ...currentSettings, units: updatedUnits });
   }, [saveSettings]);
 
-  // Export full JSON backup
+  // Export full JSON backup with timestamp tracking
   const exportBackupJSON = useCallback(() => {
+    const curProvider = getActiveDatabaseProviderSnapshot();
     const backupData = {
       timestamp: new Date().toISOString(),
-      version: '1.0',
+      provider: curProvider,
+      version: '1.2',
       settings: getSettingsSnapshot(),
       catalog: getCatalogSnapshot(),
       lists: getListsSnapshot(),
@@ -799,9 +1286,72 @@ export function useIndustrialStorage() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `backup_sistema_materiais_${new Date().toISOString().split('T')[0]}.json`;
+    a.download = `backup_seguranca_${curProvider}_${new Date().toISOString().split('T')[0]}_${Date.now().toString().slice(-4)}.json`;
     a.click();
     URL.revokeObjectURL(url);
+
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(STORAGE_KEYS.LAST_BACKUP, String(Date.now()));
+    }
+    notify();
+    return backupData;
+  }, []);
+
+  // Switch Database Provider (requires backup confirmation)
+  const switchDatabaseProvider = useCallback(async (
+    targetProvider: DatabaseProvider,
+    options?: { migrateData?: boolean; backupConfirmed?: boolean }
+  ): Promise<{ success: boolean; message: string }> => {
+    const currentProvider = getActiveDatabaseProviderSnapshot();
+    if (currentProvider === targetProvider) {
+      return { success: true, message: `O banco ${targetProvider.toUpperCase()} já está ativo.` };
+    }
+
+    if (!options?.backupConfirmed) {
+      return {
+        success: false,
+        message: 'É obrigatório realizar o download do backup de segurança antes de mudar de banco de dados.',
+      };
+    }
+
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(STORAGE_KEYS.ACTIVE_PROVIDER, targetProvider);
+      cachedActiveProvider = targetProvider;
+    }
+
+    // Migration of current local data into target database
+    if (options?.migrateData) {
+      const curCatalog = getCatalogSnapshot();
+      const curLists = getListsSnapshot();
+      const curReqs = getRequisitionsSnapshot();
+      const curSettings = getSettingsSnapshot();
+
+      if (targetProvider === 'supabase') {
+        await syncDataToSupabase('catalog', curCatalog);
+        await syncDataToSupabase('lists', curLists);
+        await syncDataToSupabase('requisitions', curReqs);
+        await syncDataToSupabase('settings', curSettings);
+      } else if (targetProvider === 'firebase') {
+        await seedCatalogToFirestore(curCatalog);
+        await seedListsToFirestore(curLists);
+        await seedRequisitionsToFirestore(curReqs);
+        setDoc(doc(db, 'settings', 'default'), curSettings).catch(() => {});
+      }
+    }
+
+    if (targetProvider === 'supabase') {
+      isSupabaseSyncRunning = false;
+      await initSupabaseSync();
+    } else {
+      isFirestoreInitialized = false;
+      initFirestoreSync();
+    }
+
+    notify();
+    return {
+      success: true,
+      message: `Banco de dados alternado para ${targetProvider === 'supabase' ? 'Supabase' : 'Firebase'}.`,
+    };
   }, []);
 
   // Import JSON backup
@@ -857,5 +1407,16 @@ export function useIndustrialStorage() {
     deleteUnit,
     exportBackupJSON,
     importBackupJSON,
+    syncStatus,
+    activeDatabaseProvider,
+    lastBackupTimestamp,
+    switchDatabaseProvider,
+    getSavedSupabaseConfig,
+    saveSupabaseConfig,
+    testSupabaseConnection,
+    SUPABASE_SETUP_SQL,
+    isCloudConnected: true,
+    cloudDatabaseName:
+      activeDatabaseProvider === 'supabase' ? 'Supabase Cloud DB' : 'Google Cloud Firestore',
   };
 }

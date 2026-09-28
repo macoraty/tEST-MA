@@ -16,7 +16,16 @@ import {
   Clock,
   Sparkles,
   Layers,
+  Database,
+  LogIn,
+  LogOut,
+  User as UserIcon,
+  ArrowLeftRight,
 } from 'lucide-react';
+import { useFirebaseAuth } from '@/lib/authContext';
+import { AuthAccountModal } from './AuthAccountModal';
+import { SwitchDatabaseModal } from './SwitchDatabaseModal';
+import { DatabaseProvider, SupabaseConfig } from '@/lib/types';
 
 interface NavbarProps {
   activeTab: ActiveTab;
@@ -29,6 +38,16 @@ interface NavbarProps {
   onOpenNewRequisitionModal: () => void;
   onExportBackup?: () => void;
   settings?: AppSettings;
+  syncStatus?: 'synced' | 'syncing' | 'offline';
+  activeDatabaseProvider?: DatabaseProvider;
+  onSwitchDatabaseProvider?: (
+    newProvider: DatabaseProvider,
+    options: { migrateData: boolean; backupConfirmed: boolean }
+  ) => Promise<{ success: boolean; message: string }>;
+  supabaseConfig?: SupabaseConfig;
+  onSaveSupabaseConfig?: (config: SupabaseConfig) => void;
+  testSupabase?: (url: string, key: string) => Promise<{ success: boolean; message: string }>;
+  supabaseSQL?: string;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -42,8 +61,18 @@ export const Navbar: React.FC<NavbarProps> = ({
   onOpenNewRequisitionModal,
   onExportBackup,
   settings,
+  syncStatus = 'synced',
+  activeDatabaseProvider = 'firebase',
+  onSwitchDatabaseProvider,
+  supabaseConfig = { url: '', anonKey: '' },
+  onSaveSupabaseConfig,
+  testSupabase,
+  supabaseSQL = '',
 }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [isSwitchDbModalOpen, setIsSwitchDbModalOpen] = useState(false);
+  const { user } = useFirebaseAuth();
   const menuDrawerRef = useRef<HTMLDivElement>(null);
 
   const appName = settings?.appName?.trim() || 'ListaPro Industrial';
@@ -216,6 +245,70 @@ export const Navbar: React.FC<NavbarProps> = ({
               <span className="hidden lg:inline">Configurações</span>
             </button>
 
+            {/* Cloud Database Indicator & Switcher Button */}
+            <button
+              id="btn-navbar-switch-database"
+              type="button"
+              onClick={() => setIsSwitchDbModalOpen(true)}
+              className="hidden md:flex items-center gap-1.5 rounded-lg border border-zinc-800 bg-zinc-900/80 px-2.5 py-1.5 text-[11px] font-mono text-zinc-300 transition hover:border-cyan-500/50 hover:bg-zinc-850"
+              title={`Banco ativo: ${activeDatabaseProvider.toUpperCase()} (Clique para alternar entre Firebase e Supabase com backup obrigatório)`}
+            >
+              <Database className="h-3.5 w-3.5 text-cyan-400" />
+              <span className="hidden xl:inline text-zinc-400 font-sans">Banco:</span>
+              <span className="font-semibold text-zinc-200">
+                {activeDatabaseProvider === 'supabase' ? 'Supabase' : 'Firestore'}
+              </span>
+              <span
+                className={`h-2 w-2 rounded-full ${
+                  syncStatus === 'synced'
+                    ? 'bg-emerald-400 animate-pulse'
+                    : syncStatus === 'syncing'
+                    ? 'bg-amber-400 animate-pulse'
+                    : 'bg-zinc-500'
+                }`}
+              />
+              <ArrowLeftRight className="h-3 w-3 text-zinc-500 hover:text-zinc-300 ml-0.5" />
+            </button>
+
+            {/* Conta Firebase: Vincular ou Gerenciar */}
+            {user ? (
+              <button
+                id="btn-navbar-account"
+                type="button"
+                onClick={() => setIsAuthModalOpen(true)}
+                className="flex items-center gap-1.5 sm:gap-2 rounded-xl border border-zinc-800 bg-zinc-900/90 px-2 sm:px-2.5 py-1 text-xs text-zinc-200 transition hover:border-cyan-500/50 hover:bg-zinc-850"
+                title={`Conta Firebase vinculada: ${user.email} (Clique para gerenciar)`}
+              >
+                {user.photoURL ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={user.photoURL}
+                    alt={user.displayName || 'Conta'}
+                    className="h-6 w-6 rounded-lg object-cover border border-emerald-500/50"
+                  />
+                ) : (
+                  <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-emerald-950 text-emerald-300 font-bold text-[11px] border border-emerald-500/40">
+                    {user.displayName?.[0]?.toUpperCase() || user.email?.[0]?.toUpperCase() || 'U'}
+                  </div>
+                )}
+                <span className="hidden xl:inline text-zinc-300 font-medium truncate max-w-[110px]">
+                  {user.displayName?.split(' ')[0] || user.email?.split('@')[0]}
+                </span>
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+              </button>
+            ) : (
+              <button
+                id="btn-navbar-link-account"
+                type="button"
+                onClick={() => setIsAuthModalOpen(true)}
+                className="flex items-center gap-1.5 rounded-xl border border-cyan-500/40 bg-cyan-950/40 px-2.5 py-1.5 text-xs font-semibold text-cyan-300 transition hover:bg-cyan-900/50 hover:border-cyan-400"
+                title="Vincular Conta do Firebase / Google"
+              >
+                <LogIn className="h-3.5 w-3.5 text-cyan-400" />
+                <span className="hidden md:inline">Vincular Conta</span>
+              </button>
+            )}
+
             {/* Action: Nova Lista */}
             <button
               id="btn-create-new-list-top"
@@ -378,6 +471,77 @@ export const Navbar: React.FC<NavbarProps> = ({
                 </div>
               </div>
 
+              {/* Section: Conta Firebase / Google */}
+              <div className="rounded-2xl border border-cyan-500/30 bg-gradient-to-b from-cyan-950/20 via-zinc-900/60 to-zinc-900/80 p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-zinc-400">
+                    Conta Firebase & Nuvem
+                  </span>
+                  {user ? (
+                    <span className="flex items-center gap-1 text-[10px] text-emerald-400 font-semibold">
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                      Vinculada
+                    </span>
+                  ) : (
+                    <span className="text-[10px] text-zinc-500 font-semibold">Não vinculada</span>
+                  )}
+                </div>
+
+                {user ? (
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2.5">
+                      {user.photoURL ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={user.photoURL}
+                          alt="Conta"
+                          className="h-9 w-9 rounded-xl border border-emerald-500/40 object-cover"
+                        />
+                      ) : (
+                        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-950 text-emerald-300 font-bold text-xs border border-emerald-500/40">
+                          {user.displayName?.[0] || 'U'}
+                        </div>
+                      )}
+                      <div className="overflow-hidden flex-1">
+                        <div className="truncate text-xs font-bold text-zinc-200">
+                          {user.displayName || 'Usuário Conectado'}
+                        </div>
+                        <div className="truncate text-[10px] text-zinc-400">
+                          {user.email}
+                        </div>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsMenuOpen(false);
+                        setIsAuthModalOpen(true);
+                      }}
+                      className="w-full flex items-center justify-center gap-2 rounded-xl border border-zinc-700 bg-zinc-900 py-2 text-xs font-semibold text-zinc-200 hover:bg-zinc-800 transition"
+                    >
+                      <span>Gerenciar / Desvincular Conta</span>
+                    </button>
+                  </div>
+                ) : (
+                  <div>
+                    <p className="text-[11px] text-zinc-400 leading-relaxed mb-3">
+                      Vincule sua conta Google ao Firebase para sincronizar dados e requisições na nuvem.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsMenuOpen(false);
+                        setIsAuthModalOpen(true);
+                      }}
+                      className="w-full flex items-center justify-center gap-2 rounded-xl bg-cyan-500 py-2 text-xs font-bold text-zinc-950 hover:bg-cyan-400 transition"
+                    >
+                      <LogIn className="h-3.5 w-3.5" />
+                      <span>Vincular Conta Google</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+
               {/* Section 2: Ações Rápidas */}
               <div>
                 <div className="px-2 text-[11px] font-bold uppercase tracking-wider text-zinc-500 mb-2">
@@ -439,13 +603,46 @@ export const Navbar: React.FC<NavbarProps> = ({
                 {settings?.defaultResponsible && (
                   <div>Responsável Padrão: {settings.defaultResponsible}</div>
                 )}
-                <div className="mt-2 text-[10px] text-zinc-500 border-t border-zinc-800/60 pt-2">
-                  Sistema {appName} • Armazenamento Local Seguro
+                <div className="mt-2 text-[10px] text-zinc-500 border-t border-zinc-800/60 pt-2 flex items-center justify-between">
+                  <span>Sistema {appName}</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsMenuOpen(false);
+                      setIsSwitchDbModalOpen(true);
+                    }}
+                    className="flex items-center gap-1 text-emerald-400 hover:text-emerald-300 transition"
+                  >
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                    <span>{activeDatabaseProvider === 'supabase' ? 'Supabase' : 'Firestore'} Ativo</span>
+                    <ArrowLeftRight className="h-3 w-3 ml-0.5" />
+                  </button>
                 </div>
               </div>
             </div>
           </div>
         </div>
+      )}
+
+      {/* Modal para Vincular / Desvincular Conta do Firebase */}
+      <AuthAccountModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+      />
+
+      {/* Modal para Alternar entre Firebase e Supabase com Trava de Backup Obrigatório */}
+      {onSwitchDatabaseProvider && (
+        <SwitchDatabaseModal
+          isOpen={isSwitchDbModalOpen}
+          onClose={() => setIsSwitchDbModalOpen(false)}
+          currentProvider={activeDatabaseProvider}
+          onExportBackup={() => onExportBackup && onExportBackup()}
+          onSwitchProvider={onSwitchDatabaseProvider}
+          supabaseConfig={supabaseConfig}
+          onSaveSupabaseConfig={onSaveSupabaseConfig || (() => {})}
+          testSupabase={testSupabase || (async () => ({ success: false, message: '' }))}
+          supabaseSQL={supabaseSQL}
+        />
       )}
     </>
   );
