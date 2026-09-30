@@ -189,8 +189,83 @@ export const UserManagementSection: React.FC = () => {
           </div>
         </div>
 
-        {/* User Table */}
-        <div className="mt-6 overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900/40">
+        {/* User List: Mobile Cards + Desktop Table */}
+        {/* MOBILE VIEW */}
+        <div className="mt-6 block sm:hidden space-y-3">
+          {users.map((u) => {
+            const isCurrent = currentUser?.id === u.id;
+            const isUserAdmin = u.role === 'admin';
+
+            return (
+              <div
+                key={u.id}
+                className="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-4 space-y-2.5 shadow-md"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <div className="flex items-center gap-1.5 font-mono font-bold text-sm text-zinc-100">
+                      <span>{u.username}</span>
+                      {isCurrent && (
+                        <span className="rounded bg-cyan-500/20 border border-cyan-500/30 text-cyan-300 px-1.5 py-0.2 text-[9px] font-bold">
+                          Você
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-xs text-zinc-300 font-medium mt-0.5">{u.name}</div>
+                    {u.email && (
+                      <div className="text-[10px] text-zinc-500">{u.email}</div>
+                    )}
+                  </div>
+
+                  {isUserAdmin ? (
+                    <span className="inline-flex items-center gap-1 rounded-full border border-cyan-500/40 bg-cyan-950/60 px-2.5 py-0.5 text-[10px] font-bold text-cyan-300">
+                      <ShieldCheck className="h-3 w-3" />
+                      <span>Admin</span>
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/40 bg-emerald-950/60 px-2.5 py-0.5 text-[10px] font-bold text-emerald-300">
+                      <UserCheck className="h-3 w-3" />
+                      <span>Operador</span>
+                    </span>
+                  )}
+                </div>
+
+                <div className="flex items-center justify-between pt-2 border-t border-zinc-800/80 text-xs">
+                  <div className="flex items-center gap-1 text-[11px] text-zinc-400">
+                    <span>Senha:</span>
+                    <span className="font-mono bg-zinc-950 px-2 py-0.5 rounded border border-zinc-800 text-zinc-300">
+                      {u.password || '••••••••'}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => handleOpenEditModal(u)}
+                      className="flex items-center gap-1 rounded-xl border border-zinc-700 bg-zinc-800 px-3 py-1.5 text-xs font-semibold text-zinc-200 hover:bg-zinc-700 min-h-[38px] transition"
+                    >
+                      <KeyRound className="h-3.5 w-3.5 text-cyan-400" />
+                      <span>Alterar</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteUser(u)}
+                      disabled={isUserAdmin && users.filter((x) => x.role === 'admin').length <= 1}
+                      className="flex h-9 w-9 items-center justify-center rounded-xl border border-red-500/30 bg-red-950/30 text-red-400 hover:bg-red-900/50 hover:text-red-200 transition disabled:opacity-30 disabled:cursor-not-allowed"
+                      title="Excluir"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* DESKTOP VIEW: User Table */}
+        <div className="mt-6 hidden sm:block overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900/40">
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
               <thead className="border-b border-zinc-800 bg-zinc-900/80 text-[11px] font-bold uppercase tracking-wider text-zinc-400">

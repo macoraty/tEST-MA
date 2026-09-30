@@ -380,51 +380,53 @@ export const ListEditor: React.FC<ListEditorProps> = ({
 
           {/* Right: Actions (Save, Export PDF, Excel, WhatsApp, Preview) */}
           <div className="flex flex-wrap items-center gap-2">
-            {/* Visualizar Lista */}
-            <button
-              onClick={() => setIsPreviewOpen(true)}
-              className="flex items-center gap-1.5 rounded-xl border border-cyan-500/40 bg-cyan-950/40 px-3 py-2 text-xs font-semibold text-cyan-400 transition hover:bg-cyan-900/50 hover:text-cyan-300"
-              title="Visualizar Lista Formatada"
-            >
-              <Eye className="h-4 w-4" />
-              <span>Visualizar</span>
-            </button>
+            <div className="grid grid-cols-4 sm:flex items-center gap-1.5 w-full sm:w-auto">
+              {/* Visualizar Lista */}
+              <button
+                onClick={() => setIsPreviewOpen(true)}
+                className="flex items-center justify-center gap-1.5 rounded-xl border border-cyan-500/40 bg-cyan-950/40 px-2.5 py-2 text-xs font-semibold text-cyan-400 transition hover:bg-cyan-900/50 hover:text-cyan-300 min-h-[38px]"
+                title="Visualizar Lista Formatada"
+              >
+                <Eye className="h-4 w-4" />
+                <span className="hidden xs:inline">Ver</span>
+              </button>
 
-            {/* WhatsApp */}
-            <button
-              onClick={() => onOpenWhatsApp({ ...list, items })}
-              className="flex items-center gap-1.5 rounded-xl border border-emerald-600/40 bg-emerald-950/40 px-3 py-2 text-xs font-semibold text-emerald-400 transition hover:bg-emerald-900/50"
-              title="Compartilhar via WhatsApp"
-            >
-              <MessageSquare className="h-4 w-4" />
-              <span>WhatsApp</span>
-            </button>
+              {/* WhatsApp */}
+              <button
+                onClick={() => onOpenWhatsApp({ ...list, items })}
+                className="flex items-center justify-center gap-1.5 rounded-xl border border-emerald-600/40 bg-emerald-950/40 px-2.5 py-2 text-xs font-semibold text-emerald-400 transition hover:bg-emerald-900/50 min-h-[38px]"
+                title="Compartilhar via WhatsApp"
+              >
+                <MessageSquare className="h-4 w-4" />
+                <span className="hidden xs:inline">Whats</span>
+              </button>
 
-            {/* PDF */}
-            <button
-              onClick={() => exportListToPDF({ ...list, items }, settings)}
-              className="flex items-center gap-1.5 rounded-xl border border-rose-600/40 bg-rose-950/40 px-3 py-2 text-xs font-semibold text-rose-400 transition hover:bg-rose-900/50"
-              title="Baixar PDF formatado"
-            >
-              <FileText className="h-4 w-4" />
-              <span>PDF</span>
-            </button>
+              {/* PDF */}
+              <button
+                onClick={() => exportListToPDF({ ...list, items }, settings)}
+                className="flex items-center justify-center gap-1.5 rounded-xl border border-rose-600/40 bg-rose-950/40 px-2.5 py-2 text-xs font-semibold text-rose-400 transition hover:bg-rose-900/50 min-h-[38px]"
+                title="Baixar PDF formatado"
+              >
+                <FileText className="h-4 w-4" />
+                <span className="hidden xs:inline">PDF</span>
+              </button>
 
-            {/* Excel */}
-            <button
-              onClick={() => exportListToExcel({ ...list, items }, settings)}
-              className="flex items-center gap-1.5 rounded-xl border border-emerald-600/40 bg-emerald-950/40 px-3 py-2 text-xs font-semibold text-emerald-400 transition hover:bg-emerald-900/50"
-              title="Baixar Planilha Excel"
-            >
-              <FileSpreadsheet className="h-4 w-4" />
-              <span>Excel</span>
-            </button>
+              {/* Excel */}
+              <button
+                onClick={() => exportListToExcel({ ...list, items }, settings)}
+                className="flex items-center justify-center gap-1.5 rounded-xl border border-emerald-600/40 bg-emerald-950/40 px-2.5 py-2 text-xs font-semibold text-emerald-400 transition hover:bg-emerald-900/50 min-h-[38px]"
+                title="Baixar Planilha Excel"
+              >
+                <FileSpreadsheet className="h-4 w-4" />
+                <span className="hidden xs:inline">Excel</span>
+              </button>
+            </div>
 
             {/* SAVE BUTTON */}
             <button
               id="btn-save-list-editor"
               onClick={handleSave}
-              className={`flex items-center gap-2 rounded-xl px-5 py-2 text-xs font-bold shadow-lg transition ${
+              className={`flex w-full sm:w-auto items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-xs font-bold shadow-lg transition min-h-[40px] ${
                 hasSaved
                   ? 'bg-emerald-600 text-white shadow-emerald-950/50'
                   : 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-cyan-950/50 hover:from-cyan-400 hover:to-blue-500'
@@ -433,12 +435,12 @@ export const ListEditor: React.FC<ListEditorProps> = ({
               {hasSaved ? (
                 <>
                   <Check className="h-4 w-4" />
-                  <span>Lista Salva!</span>
+                  <span>Lista Salva com Sucesso!</span>
                 </>
               ) : (
                 <>
                   <Save className="h-4 w-4" />
-                  <span>Salvar Lista</span>
+                  <span>Salvar Lista ({items.length} itens)</span>
                 </>
               )}
             </button>
@@ -812,9 +814,9 @@ export const ListEditor: React.FC<ListEditorProps> = ({
           </div>
         </div>
 
-        {/* Selected Items Table */}
+        {/* Selected Items: Mobile Card List + Desktop Table */}
         {displayedItems.length === 0 ? (
-          <div className="p-12 text-center">
+          <div className="p-8 sm:p-12 text-center">
             <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-xl bg-zinc-900 text-zinc-500">
               <PlusCircle className="h-6 w-6" />
             </div>
@@ -830,122 +832,53 @@ export const ListEditor: React.FC<ListEditorProps> = ({
             </p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs text-zinc-300">
-              <thead className="border-b border-zinc-800 bg-zinc-900/80 text-zinc-400">
-                <tr>
-                  <th
-                    onClick={() => handleSort('order')}
-                    className="w-10 cursor-pointer px-3 py-3 text-center font-semibold hover:text-zinc-100"
-                  >
-                    #
-                  </th>
-                  <th
-                    onClick={() => handleSort('code')}
-                    className="cursor-pointer px-3 py-3 font-semibold hover:text-zinc-100"
-                  >
-                    <div className="flex items-center gap-1">
-                      <span>Código</span>
-                      {renderSortIndicator('code')}
-                    </div>
-                  </th>
-                  <th
-                    onClick={() => handleSort('description')}
-                    className="cursor-pointer px-3 py-3 font-semibold hover:text-zinc-100"
-                  >
-                    <div className="flex items-center gap-1">
-                      <span>Descrição do Material</span>
-                      {renderSortIndicator('description')}
-                    </div>
-                  </th>
-                  <th
-                    onClick={() => handleSort('group')}
-                    className="cursor-pointer px-3 py-3 font-semibold hover:text-zinc-100"
-                  >
-                    <div className="flex items-center gap-1">
-                      <span>Grupo</span>
-                      {renderSortIndicator('group')}
-                    </div>
-                  </th>
-                  <th
-                    onClick={() => handleSort('unit')}
-                    className="cursor-pointer px-2 py-3 text-center font-semibold hover:text-zinc-100"
-                  >
-                    Unid.
-                  </th>
-                  <th
-                    onClick={() => handleSort('quantity')}
-                    className="cursor-pointer px-3 py-3 text-center font-semibold hover:text-zinc-100"
-                  >
-                    <div className="flex items-center justify-center gap-1">
-                      <span>Quantidade</span>
-                      {renderSortIndicator('quantity')}
-                    </div>
-                  </th>
-                  <th
-                    onClick={() => handleSort('unitCost')}
-                    className="cursor-pointer px-3 py-3 text-right font-semibold hover:text-zinc-100"
-                  >
-                    <div className="flex items-center justify-end gap-1">
-                      <span>Custo Unit.</span>
-                      {renderSortIndicator('unitCost')}
-                    </div>
-                  </th>
-                  <th
-                    onClick={() => handleSort('totalCost')}
-                    className="cursor-pointer px-3 py-3 text-right font-semibold hover:text-zinc-100"
-                  >
-                    <div className="flex items-center justify-end gap-1">
-                      <span>Total ({settings.currencySymbol})</span>
-                      {renderSortIndicator('totalCost')}
-                    </div>
-                  </th>
-                  <th className="px-3 py-3 text-right font-semibold">Ações</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-zinc-800/60">
-                {displayedItems.map((item, index) => (
-                  <tr key={item.id} className="transition hover:bg-zinc-900/40">
-                    {/* Index */}
-                    <td className="px-3 py-3 text-center font-mono text-zinc-400">
-                      {index + 1}
-                    </td>
-
-                    {/* Code */}
-                    <td className="px-3 py-3 font-mono font-medium text-zinc-300">
-                      {item.code}
-                    </td>
-
-                    {/* Description & Notes */}
-                    <td className="px-3 py-3">
-                      <div className="font-semibold text-zinc-100">{item.description}</div>
-                      {item.notes && (
-                        <div className="text-[11px] italic text-zinc-400">
-                          ↳ Obs: {item.notes}
-                        </div>
-                      )}
-                    </td>
-
-                    {/* Group */}
-                    <td className="px-3 py-3">
-                      <span className="rounded bg-zinc-800/90 px-2 py-0.5 text-[11px] text-zinc-300">
+          <>
+            {/* MOBILE VIEW: Touch-friendly cards (visible only on mobile) */}
+            <div className="block md:hidden divide-y divide-zinc-800">
+              {displayedItems.map((item, index) => (
+                <div key={item.id} className="p-3.5 space-y-2.5 bg-zinc-950/60">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-zinc-800 font-mono text-xs text-zinc-300 font-bold">
+                        {index + 1}
+                      </span>
+                      <span className="rounded-lg bg-zinc-800 px-2 py-0.5 font-mono text-xs font-bold text-cyan-400">
+                        {item.code}
+                      </span>
+                      <span className="rounded-lg bg-zinc-900 px-2 py-0.5 text-[10px] text-zinc-400 border border-zinc-800">
                         {item.group}
                       </span>
-                    </td>
+                    </div>
 
-                    {/* Unit */}
-                    <td className="px-2 py-3 text-center font-bold text-zinc-400">
-                      {item.unit}
-                    </td>
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveItem(item.id)}
+                      className="flex h-9 w-9 items-center justify-center rounded-xl text-zinc-400 hover:bg-red-950/40 hover:text-red-400 transition"
+                      title="Remover material"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
 
-                    {/* Quantity with quick steppers */}
-                    <td className="px-3 py-3">
-                      <div className="flex items-center justify-center gap-1">
+                  <div className="font-semibold text-xs sm:text-sm text-zinc-100 leading-snug">
+                    {item.description}
+                  </div>
+                  {item.notes && (
+                    <div className="text-[11px] text-zinc-400 italic bg-zinc-900/80 p-2 rounded-lg border border-zinc-800">
+                      ↳ Obs: {item.notes}
+                    </div>
+                  )}
+
+                  <div className="flex flex-wrap items-center justify-between gap-2 border-t border-zinc-800 pt-2 text-xs">
+                    {/* Stepper Quantity for touch */}
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[11px] font-semibold text-zinc-400">Qtd ({item.unit}):</span>
+                      <div className="flex items-center rounded-xl border border-zinc-700 bg-zinc-900 shadow-sm">
                         <button
                           type="button"
                           onClick={() => handleUpdateQuantity(item.id, item.quantity - 1)}
-                          className="flex h-6 w-6 items-center justify-center rounded bg-zinc-800 text-zinc-300 hover:bg-zinc-700"
                           disabled={item.quantity <= 1}
+                          className="flex h-9 w-9 items-center justify-center font-bold text-sm text-zinc-200 hover:bg-zinc-800 disabled:opacity-30 active:scale-95 transition"
                         >
                           -
                         </button>
@@ -960,63 +893,239 @@ export const ListEditor: React.FC<ListEditorProps> = ({
                               parseFloat(e.target.value) || 0
                             )
                           }
-                          className="w-16 rounded border border-zinc-700 bg-zinc-900 px-1 py-1 text-center font-mono text-xs font-bold text-cyan-400 outline-none focus:border-cyan-500"
+                          className="w-14 bg-transparent text-center font-mono text-xs font-bold text-cyan-300 outline-none"
                         />
                         <button
                           type="button"
                           onClick={() => handleUpdateQuantity(item.id, item.quantity + 1)}
-                          className="flex h-6 w-6 items-center justify-center rounded bg-zinc-800 text-zinc-300 hover:bg-zinc-700"
+                          className="flex h-9 w-9 items-center justify-center font-bold text-sm text-zinc-200 hover:bg-zinc-800 active:scale-95 transition"
                         >
                           +
                         </button>
                       </div>
-                    </td>
+                    </div>
 
-                    {/* Unit Cost */}
-                    <td className="px-3 py-3 text-right">
-                      <input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        value={item.unitCost || ''}
-                        onChange={(e) =>
-                          handleUpdateUnitCost(
-                            item.id,
-                            parseFloat(e.target.value) || 0
-                          )
-                        }
-                        placeholder="0.00"
-                        className="w-20 rounded border border-zinc-800 bg-zinc-900 px-1.5 py-1 text-right font-mono text-xs text-zinc-200 outline-none focus:border-cyan-500"
-                      />
-                    </td>
-
-                    {/* Total Cost & Weight */}
-                    <td className="px-3 py-3 text-right font-mono">
-                      <div className="font-bold text-emerald-400">
-                        {formatCurrency(item.totalCost, settings.currencySymbol)}
+                    {/* Unit Cost input & Total */}
+                    <div className="flex items-center gap-3">
+                      <div className="text-right">
+                        <div className="text-[10px] text-zinc-500">Unitário:</div>
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          value={item.unitCost || ''}
+                          onChange={(e) =>
+                            handleUpdateUnitCost(
+                              item.id,
+                              parseFloat(e.target.value) || 0
+                            )
+                          }
+                          placeholder="0.00"
+                          className="w-20 rounded-lg border border-zinc-700 bg-zinc-900 px-2 py-1 text-right font-mono text-xs text-zinc-200 outline-none focus:border-cyan-500"
+                        />
                       </div>
-                      {item.totalWeight > 0 && (
-                        <div className="text-[10px] text-zinc-400">
-                          {item.totalWeight.toFixed(2)} kg
-                        </div>
-                      )}
-                    </td>
 
-                    {/* Remove Action */}
-                    <td className="px-3 py-3 text-right">
-                      <button
-                        onClick={() => handleRemoveItem(item.id)}
-                        className="rounded-lg p-1 text-zinc-500 transition hover:bg-red-950/50 hover:text-red-400"
-                        title="Remover este item da lista"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </td>
+                      <div className="text-right">
+                        <div className="text-[10px] text-zinc-500">Subtotal:</div>
+                        <div className="font-mono text-xs font-bold text-emerald-400">
+                          {formatCurrency(item.totalCost, settings.currencySymbol)}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* DESKTOP VIEW: Multi-column table (hidden on mobile) */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full text-left text-xs text-zinc-300">
+                <thead className="border-b border-zinc-800 bg-zinc-900/80 text-zinc-400">
+                  <tr>
+                    <th
+                      onClick={() => handleSort('order')}
+                      className="w-10 cursor-pointer px-3 py-3 text-center font-semibold hover:text-zinc-100"
+                    >
+                      #
+                    </th>
+                    <th
+                      onClick={() => handleSort('code')}
+                      className="cursor-pointer px-3 py-3 font-semibold hover:text-zinc-100"
+                    >
+                      <div className="flex items-center gap-1">
+                        <span>Código</span>
+                        {renderSortIndicator('code')}
+                      </div>
+                    </th>
+                    <th
+                      onClick={() => handleSort('description')}
+                      className="cursor-pointer px-3 py-3 font-semibold hover:text-zinc-100"
+                    >
+                      <div className="flex items-center gap-1">
+                        <span>Descrição do Material</span>
+                        {renderSortIndicator('description')}
+                      </div>
+                    </th>
+                    <th
+                      onClick={() => handleSort('group')}
+                      className="cursor-pointer px-3 py-3 font-semibold hover:text-zinc-100"
+                    >
+                      <div className="flex items-center gap-1">
+                        <span>Grupo</span>
+                        {renderSortIndicator('group')}
+                      </div>
+                    </th>
+                    <th
+                      onClick={() => handleSort('unit')}
+                      className="cursor-pointer px-2 py-3 text-center font-semibold hover:text-zinc-100"
+                    >
+                      Unid.
+                    </th>
+                    <th
+                      onClick={() => handleSort('quantity')}
+                      className="cursor-pointer px-3 py-3 text-center font-semibold hover:text-zinc-100"
+                    >
+                      <div className="flex items-center justify-center gap-1">
+                        <span>Quantidade</span>
+                        {renderSortIndicator('quantity')}
+                      </div>
+                    </th>
+                    <th
+                      onClick={() => handleSort('unitCost')}
+                      className="cursor-pointer px-3 py-3 text-right font-semibold hover:text-zinc-100"
+                    >
+                      <div className="flex items-center justify-end gap-1">
+                        <span>Custo Unit.</span>
+                        {renderSortIndicator('unitCost')}
+                      </div>
+                    </th>
+                    <th
+                      onClick={() => handleSort('totalCost')}
+                      className="cursor-pointer px-3 py-3 text-right font-semibold hover:text-zinc-100"
+                    >
+                      <div className="flex items-center justify-end gap-1">
+                        <span>Total ({settings.currencySymbol})</span>
+                        {renderSortIndicator('totalCost')}
+                      </div>
+                    </th>
+                    <th className="px-3 py-3 text-right font-semibold">Ações</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y divide-zinc-800/60">
+                  {displayedItems.map((item, index) => (
+                    <tr key={item.id} className="transition hover:bg-zinc-900/40">
+                      {/* Index */}
+                      <td className="px-3 py-3 text-center font-mono text-zinc-400">
+                        {index + 1}
+                      </td>
+
+                      {/* Code */}
+                      <td className="px-3 py-3 font-mono font-medium text-zinc-300">
+                        {item.code}
+                      </td>
+
+                      {/* Description & Notes */}
+                      <td className="px-3 py-3">
+                        <div className="font-semibold text-zinc-100">{item.description}</div>
+                        {item.notes && (
+                          <div className="text-[11px] italic text-zinc-400">
+                            ↳ Obs: {item.notes}
+                          </div>
+                        )}
+                      </td>
+
+                      {/* Group */}
+                      <td className="px-3 py-3">
+                        <span className="rounded bg-zinc-800/90 px-2 py-0.5 text-[11px] text-zinc-300">
+                          {item.group}
+                        </span>
+                      </td>
+
+                      {/* Unit */}
+                      <td className="px-2 py-3 text-center font-bold text-zinc-400">
+                        {item.unit}
+                      </td>
+
+                      {/* Quantity with quick steppers */}
+                      <td className="px-3 py-3">
+                        <div className="flex items-center justify-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => handleUpdateQuantity(item.id, item.quantity - 1)}
+                            className="flex h-6 w-6 items-center justify-center rounded bg-zinc-800 text-zinc-300 hover:bg-zinc-700"
+                            disabled={item.quantity <= 1}
+                          >
+                            -
+                          </button>
+                          <input
+                            type="number"
+                            step="0.01"
+                            min="0.01"
+                            value={item.quantity}
+                            onChange={(e) =>
+                              handleUpdateQuantity(
+                                item.id,
+                                parseFloat(e.target.value) || 0
+                              )
+                            }
+                            className="w-16 rounded border border-zinc-700 bg-zinc-900 px-1 py-1 text-center font-mono text-xs font-bold text-cyan-400 outline-none focus:border-cyan-500"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => handleUpdateQuantity(item.id, item.quantity + 1)}
+                            className="flex h-6 w-6 items-center justify-center rounded bg-zinc-800 text-zinc-300 hover:bg-zinc-700"
+                          >
+                            +
+                          </button>
+                        </div>
+                      </td>
+
+                      {/* Unit Cost */}
+                      <td className="px-3 py-3 text-right">
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          value={item.unitCost || ''}
+                          onChange={(e) =>
+                            handleUpdateUnitCost(
+                              item.id,
+                              parseFloat(e.target.value) || 0
+                            )
+                          }
+                          placeholder="0.00"
+                          className="w-20 rounded border border-zinc-800 bg-zinc-900 px-1.5 py-1 text-right font-mono text-xs text-zinc-200 outline-none focus:border-cyan-500"
+                        />
+                      </td>
+
+                      {/* Total Cost & Weight */}
+                      <td className="px-3 py-3 text-right font-mono">
+                        <div className="font-bold text-emerald-400">
+                          {formatCurrency(item.totalCost, settings.currencySymbol)}
+                        </div>
+                        {item.totalWeight > 0 && (
+                          <div className="text-[10px] text-zinc-400">
+                            {item.totalWeight.toFixed(2)} kg
+                          </div>
+                        )}
+                      </td>
+
+                      {/* Remove Action */}
+                      <td className="px-3 py-3 text-right">
+                        <button
+                          onClick={() => handleRemoveItem(item.id)}
+                          className="rounded-lg p-1 text-zinc-500 transition hover:bg-red-950/50 hover:text-red-400"
+                          title="Remover este item da lista"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
 
         {/* Footer Summary & Save Bar */}
@@ -1077,6 +1186,41 @@ export const ListEditor: React.FC<ListEditorProps> = ({
             </button>
           </div>
         </div>
+      </div>
+
+      {/* Mobile Floating Sticky Save Bar (Accessible at all times on phones) */}
+      <div className="fixed bottom-14 left-0 right-0 z-30 flex items-center justify-between border-t border-cyan-500/40 bg-zinc-950/95 px-4 py-2.5 backdrop-blur-xl md:hidden shadow-[0_-4px_20px_rgba(0,0,0,0.8)]">
+        <div className="flex flex-col">
+          <span className="text-[11px] text-zinc-400">
+            <strong className="text-zinc-100">{items.length}</strong> itens •{' '}
+            <strong className="text-cyan-400">{totalQty} un</strong>
+          </span>
+          <span className="font-mono text-xs font-bold text-emerald-400">
+            {formatCurrency(totalCost, settings.currencySymbol)}
+          </span>
+        </div>
+
+        <button
+          type="button"
+          onClick={handleSave}
+          className={`flex items-center gap-1.5 rounded-xl px-4 py-2 text-xs font-bold shadow-lg transition active:scale-95 ${
+            hasSaved
+              ? 'bg-emerald-600 text-white shadow-emerald-950/50'
+              : 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-cyan-950/50'
+          }`}
+        >
+          {hasSaved ? (
+            <>
+              <Check className="h-4 w-4" />
+              <span>Salvo!</span>
+            </>
+          ) : (
+            <>
+              <Save className="h-4 w-4" />
+              <span>Salvar Lista</span>
+            </>
+          )}
+        </button>
       </div>
 
       {/* List Preview Modal */}

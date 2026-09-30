@@ -246,8 +246,56 @@ export const RequisitionPreviewModal: React.FC<RequisitionPreviewModalProps> = (
               </div>
             )}
 
-            {/* Table */}
-            <div className="mt-6 overflow-x-auto rounded-lg border border-zinc-800 print:border-zinc-300">
+            {/* Table / Cards */}
+            {/* MOBILE VIEW: Cards for phones */}
+            <div className="mt-4 block sm:hidden space-y-2.5">
+              {requisition.items.map((it, idx) => (
+                <div
+                  key={it.id || idx}
+                  className="rounded-xl border border-zinc-800 bg-zinc-900/60 p-3 text-xs space-y-1.5"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-mono text-zinc-500 font-bold">
+                        #{String(idx + 1).padStart(2, '0')}
+                      </span>
+                      <span className="font-mono font-bold text-cyan-400">
+                        {it.code}
+                      </span>
+                      <span className="rounded bg-zinc-800 px-1.5 py-0.2 text-[9px] text-zinc-400">
+                        {it.group}
+                      </span>
+                    </div>
+
+                    <span className="rounded bg-cyan-950/60 px-2 py-0.5 font-mono text-xs font-bold text-zinc-200 border border-cyan-500/30">
+                      {it.quantity} {it.unit}
+                    </span>
+                  </div>
+
+                  <div className="font-semibold text-zinc-100">
+                    {it.description}
+                  </div>
+
+                  {it.destinationMachine && (
+                    <div className="text-[11px] text-zinc-400">
+                      Aplicação: <span className="text-zinc-300">{it.destinationMachine}</span>
+                    </div>
+                  )}
+
+                  <div className="flex items-center justify-between pt-1 border-t border-zinc-800/80 text-[11px]">
+                    <span className="text-zinc-500">
+                      Unit: {formatCurrency(it.estimatedCost, settings.currencySymbol)}
+                    </span>
+                    <span className="font-mono font-bold text-emerald-400">
+                      Subtotal: {formatCurrency(it.totalEstimatedCost, settings.currencySymbol)}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* DESKTOP VIEW: Table */}
+            <div className="mt-6 hidden sm:block overflow-x-auto rounded-lg border border-zinc-800 print:border-zinc-300">
               <table className="w-full text-left text-xs print:text-zinc-900">
                 <thead className="border-b border-zinc-800 bg-zinc-900/80 text-[10px] uppercase tracking-wider text-zinc-400 print:border-zinc-300 print:bg-zinc-100 print:text-zinc-700">
                   <tr>

@@ -139,8 +139,8 @@ export const Navbar: React.FC<NavbarProps> = ({
             </div>
           </div>
 
-          {/* Center / Right: Quick Navigation Tabs */}
-          <nav className="flex items-center gap-1 sm:gap-2">
+          {/* Desktop Navigation Tabs */}
+          <nav className="hidden md:flex items-center gap-1 sm:gap-2">
             {/* Tab: Listas Geradas */}
             <button
               id="tab-btn-lists"
@@ -152,7 +152,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               }`}
             >
               <ClipboardList className="h-4 w-4" />
-              <span className="hidden sm:inline">Listas</span>
+              <span>Listas</span>
               <span
                 className={`rounded-full px-1.5 py-0.2 text-[10px] sm:text-[11px] font-bold ${
                   activeTab === 'lists'
@@ -164,7 +164,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               </span>
             </button>
 
-            {/* Tab: Solicitação de Insumos (NOVA PÁGINA) */}
+            {/* Tab: Solicitação de Insumos */}
             <button
               id="tab-btn-requisitions"
               onClick={() => handleSelectTab('requisitions')}
@@ -175,8 +175,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               }`}
             >
               <FileText className="h-4 w-4 text-cyan-400" />
-              <span className="hidden sm:inline">Solicitações</span>
-              <span className="sm:hidden">Insumos</span>
+              <span>Solicitações</span>
               <span
                 className={`rounded-full px-1.5 py-0.2 text-[10px] sm:text-[11px] font-bold ${
                   pendingRequisitionsCount > 0
@@ -201,7 +200,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               }`}
             >
               <Package className="h-4 w-4" />
-              <span className="hidden md:inline">Catálogo</span>
+              <span>Catálogo</span>
               <span
                 className={`rounded-full px-1.5 py-0.2 text-[10px] sm:text-[11px] font-bold ${
                   activeTab === 'catalog'
@@ -216,13 +215,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             {/* Tab: Configurações (Admin tem acesso total) */}
             <button
               id="tab-btn-settings"
-              onClick={() => {
-                if (!isAdmin) {
-                  alert('Acesso Restrito: Somente o Administrador tem permissão para acessar as Configurações do Sistema.');
-                  return;
-                }
-                handleSelectTab('settings');
-              }}
+              onClick={() => handleSelectTab('settings')}
               className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-all sm:px-3 sm:py-2 sm:text-sm ${
                 activeTab === 'settings'
                   ? 'border border-cyan-500/30 bg-cyan-500/10 text-cyan-300 shadow-sm'
@@ -231,14 +224,14 @@ export const Navbar: React.FC<NavbarProps> = ({
               title={isAdmin ? 'Configurações e Parâmetros (Acesso Total)' : 'Configurações (Apenas Administrador)'}
             >
               <Settings className="h-4 w-4" />
-              <span className="hidden lg:inline">Configurações</span>
+              <span>Configurações</span>
               {!isAdmin && <Lock className="h-3 w-3 text-amber-400/80" />}
             </button>
 
-            {/* Supabase Cloud DB Badge (Exclusivo) */}
+            {/* Supabase Cloud DB Badge */}
             <div
               id="badge-supabase-active"
-              className="hidden md:flex items-center gap-1.5 rounded-lg border border-emerald-500/30 bg-emerald-950/30 px-2.5 py-1.5 text-[11px] font-mono text-emerald-300 shadow-sm"
+              className="flex items-center gap-1.5 rounded-lg border border-emerald-500/30 bg-emerald-950/30 px-2.5 py-1.5 text-[11px] font-mono text-emerald-300 shadow-sm"
               title="Banco em Nuvem: Supabase Conectado (PostgreSQL)"
             >
               <Server className="h-3.5 w-3.5 text-emerald-400" />
@@ -288,7 +281,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               </div>
             )}
 
-            {/* Action: Nova Lista */}
+            {/* Action: Nova Lista Desktop */}
             <button
               id="btn-create-new-list-top"
               onClick={onOpenNewListModal}
@@ -299,10 +292,47 @@ export const Navbar: React.FC<NavbarProps> = ({
               }`}
             >
               <PlusCircle className="h-4 w-4 text-emerald-400" />
-              <span className="hidden sm:inline">Nova Lista</span>
-              <span className="sm:hidden">+ Lista</span>
+              <span>Nova Lista</span>
             </button>
           </nav>
+
+          {/* Mobile Right Controls: User Pill & Quick Logout */}
+          <div className="flex items-center gap-2 md:hidden">
+            {/* Supabase status indicator */}
+            <div
+              className="flex items-center gap-1 rounded-lg border border-emerald-500/30 bg-emerald-950/30 px-2 py-1 text-[10px] font-mono text-emerald-400"
+              title="Supabase Conectado"
+            >
+              <Server className="h-3 w-3 text-emerald-400" />
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+            </div>
+
+            {currentUser && (
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setIsMenuOpen(true)}
+                  className={`flex h-8 w-8 items-center justify-center rounded-xl text-xs font-bold border ${
+                    isAdmin
+                      ? 'bg-cyan-950 text-cyan-300 border-cyan-500/40'
+                      : 'bg-emerald-950 text-emerald-300 border-emerald-500/40'
+                  }`}
+                  title={`${currentUser.name} (${isAdmin ? 'Admin' : 'Operador'})`}
+                >
+                  {currentUser.name[0]?.toUpperCase() || 'U'}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={logout}
+                  className="flex h-8 w-8 items-center justify-center rounded-xl border border-zinc-800 bg-zinc-900/90 text-zinc-400 hover:border-red-500/40 hover:text-red-300 transition"
+                  title="Sair"
+                >
+                  <LogOut className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </header>
 
@@ -577,6 +607,113 @@ export const Navbar: React.FC<NavbarProps> = ({
           </div>
         </div>
       )}
+
+      {/* Mobile Bottom Navigation Bar (Fixed bottom for phone usability) */}
+      <nav
+        aria-label="Navegação Inferior Mobile"
+        className="fixed bottom-0 left-0 right-0 z-40 flex items-center justify-around border-t border-zinc-800 bg-zinc-950/95 px-2 py-1.5 backdrop-blur-xl md:hidden shadow-[0_-8px_24px_rgba(0,0,0,0.6)]"
+      >
+        {/* Tab 1: Listas */}
+        <button
+          type="button"
+          onClick={() => handleSelectTab('lists')}
+          className={`flex flex-col items-center justify-center py-1 px-2 rounded-xl transition min-w-[56px] min-h-[48px] ${
+            activeTab === 'lists' || activeTab === 'new-list'
+              ? 'text-cyan-400 font-bold'
+              : 'text-zinc-400 hover:text-zinc-200'
+          }`}
+        >
+          <div className="relative">
+            <ClipboardList className="h-5 w-5" />
+            {listsCount > 0 && (
+              <span className="absolute -top-1.5 -right-2 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-zinc-800 px-1 text-[9px] font-mono font-bold text-zinc-200 border border-zinc-700">
+                {listsCount}
+              </span>
+            )}
+          </div>
+          <span className="text-[10px] mt-1 font-medium">Listas</span>
+        </button>
+
+        {/* Tab 2: Insumos (Solicitações) */}
+        <button
+          type="button"
+          onClick={() => handleSelectTab('requisitions')}
+          className={`flex flex-col items-center justify-center py-1 px-2 rounded-xl transition min-w-[56px] min-h-[48px] ${
+            activeTab === 'requisitions'
+              ? 'text-cyan-400 font-bold'
+              : 'text-zinc-400 hover:text-zinc-200'
+          }`}
+        >
+          <div className="relative">
+            <FileText className="h-5 w-5" />
+            {pendingRequisitionsCount > 0 ? (
+              <span className="absolute -top-1.5 -right-2 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-amber-500 text-zinc-950 px-1 text-[9px] font-mono font-bold animate-pulse">
+                {pendingRequisitionsCount}
+              </span>
+            ) : requisitionsCount > 0 ? (
+              <span className="absolute -top-1.5 -right-2 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-zinc-800 px-1 text-[9px] font-mono font-bold text-zinc-200 border border-zinc-700">
+                {requisitionsCount}
+              </span>
+            ) : null}
+          </div>
+          <span className="text-[10px] mt-1 font-medium">Insumos</span>
+        </button>
+
+        {/* Tab 3: Center Action (+ Nova Lista) */}
+        <button
+          type="button"
+          onClick={onOpenNewListModal}
+          className="flex flex-col items-center justify-center -translate-y-2 group"
+          title="Criar Nova Lista"
+        >
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-tr from-cyan-500 to-emerald-400 text-zinc-950 shadow-lg shadow-cyan-950/80 transition transform group-active:scale-95 ring-4 ring-zinc-950">
+            <PlusCircle className="h-6 w-6 stroke-[2.5]" />
+          </div>
+          <span className="text-[10px] mt-0.5 font-bold text-cyan-300">Nova</span>
+        </button>
+
+        {/* Tab 4: Catálogo */}
+        <button
+          type="button"
+          onClick={() => handleSelectTab('catalog')}
+          className={`flex flex-col items-center justify-center py-1 px-2 rounded-xl transition min-w-[56px] min-h-[48px] ${
+            activeTab === 'catalog'
+              ? 'text-cyan-400 font-bold'
+              : 'text-zinc-400 hover:text-zinc-200'
+          }`}
+        >
+          <div className="relative">
+            <Package className="h-5 w-5" />
+            {catalogCount > 0 && (
+              <span className="absolute -top-1.5 -right-2.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-zinc-800 px-1 text-[9px] font-mono font-bold text-zinc-200 border border-zinc-700">
+                {catalogCount}
+              </span>
+            )}
+          </div>
+          <span className="text-[10px] mt-1 font-medium">Catálogo</span>
+        </button>
+
+        {/* Tab 5: Configurações */}
+        <button
+          type="button"
+          onClick={() => handleSelectTab('settings')}
+          className={`flex flex-col items-center justify-center py-1 px-2 rounded-xl transition min-w-[56px] min-h-[48px] ${
+            activeTab === 'settings'
+              ? 'text-cyan-400 font-bold'
+              : 'text-zinc-400 hover:text-zinc-200'
+          }`}
+        >
+          <div className="relative">
+            <Settings className="h-5 w-5" />
+            {!isAdmin && (
+              <span className="absolute -top-1 -right-1 text-amber-400">
+                <Lock className="h-3 w-3" />
+              </span>
+            )}
+          </div>
+          <span className="text-[10px] mt-1 font-medium">Ajustes</span>
+        </button>
+      </nav>
     </>
   );
 };

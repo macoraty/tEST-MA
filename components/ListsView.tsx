@@ -62,6 +62,9 @@ export const ListsView: React.FC<ListsViewProps> = ({
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
   const [viewMode, setViewMode] = useState<'table' | 'cards'>('table');
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
+
+  const hasActiveFilters = selectedMachine !== 'ALL' || selectedClient !== 'ALL' || selectedStatus !== 'ALL';
 
   // Unique machines and clients for quick filters
   const uniqueMachines = useMemo(() => {
@@ -211,6 +214,188 @@ export const ListsView: React.FC<ListsViewProps> = ({
     );
   };
 
+  // Card renderer for responsive mobile list and grid view
+  const renderListCard = (list: MaterialList) => {
+    const totalCost = list.items.reduce((acc, i) => acc + (Number(i.totalCost) || 0), 0);
+    const totalWeight = list.items.reduce((acc, i) => acc + (Number(i.totalWeight) || 0), 0);
+    const isDeleting = deleteConfirmId === list.id;
+
+    return (
+      <div
+        key={list.id}
+        className="flex flex-col justify-between rounded-2xl border border-zinc-800 bg-zinc-950 p-4 sm:p-5 shadow-xl transition hover:border-zinc-700/80"
+      >
+        <div>
+          {/* Top info and status */}
+          <div className="flex items-start justify-between gap-2 border-b border-zinc-800/80 pb-3">
+            <div>
+              <h3
+                onClick={() => onPreviewList(list)}
+                title="Clique para visualizar a lista"
+                className="cursor-pointer font-bold text-sm sm:text-base text-zinc-100 transition hover:text-cyan-400"
+              >
+                {list.name}
+              </h3>
+              <div className="mt-1 flex items-center gap-1.5 text-xs text-zinc-400">
+                <Cog className="h-3.5 w-3.5 text-cyan-400 shrink-0" />
+                <span className="truncate max-w-[200px]">{list.machine}</span>
+              </div>
+            </div>
+            <div className="shrink-0">{getStatusBadge(list.status)}</div>
+          </div>
+
+          {/* Client, Date, Items */}
+          <div className="mt-3 space-y-2 text-xs">
+            <div className="flex items-center justify-between text-zinc-400">
+              <span className="flex items-center gap-1 text-zinc-500">
+                <Building2 className="h-3.5 w-3.5" /> Cliente:
+              </span>
+              <span className="font-medium text-zinc-200 truncate max-w-[180px]">{list.client || '-'}</span>
+            </div>
+
+            <div className="flex items-center justify-between text-zinc-400">
+              <span className="flex items-center gap-1 text-zinc-500">
+                <Calendar className="h-3.5 w-3.5" /> Data:
+              </span>
+              <span className="text-zinc-300">{formatDate(list.date)}</span>
+            </div>
+
+            <div className="flex items-center justify-between text-zinc-400">
+              <span className="text-zinc-500">Total de Itens:</span>
+              <span className="rounded bg-zinc-900 px-2 py-0.5 font-mono font-bold text-zinc-200">
+                {list.items.length} itens
+              </span>
+            </div>
+
+            {totalCost > 0 && (
+              <div className="flex items-center justify-between text-zinc-400">
+                <span className="text-zinc-500">Custo Estimado:</span>
+                <span className="font-mono font-bold text-emerald-400">
+                  {formatCurrency(totalCost, settings.currencySymbol)}
+                </span>
+              </div>
+            )}
+
+            {totalWeight > 0 && (
+              <div className="flex items-center justify-between text-zinc-400">
+                <span className="text-zinc-500">Peso Total:</span>
+                <span className="text-zinc-300">{totalWeight.toFixed(2)} kg</span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Card Actions Footer */}
+        <div className="mt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 border-t border-zinc-800/80 pt-3">
+          {isDeleting ? (
+            <div className="flex w-full items-center justify-between">
+              <span className="text-xs text-red-400">Confirmar exclusão?</span>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => onDeleteList(list.id)}
+                  className="rounded-xl bg-red-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-red-500 min-h-[36px]"
+                >
+                  Sim, Excluir
+                </button>
+                <button
+                  onClick={() => setDeleteConfirmId(null)}
+                  className="rounded-xl bg-zinc-800 px-3 py-1.5 text-xs text-zinc-300 hover:bg-zinc-700 min-h-[36px]"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className="flex w-full flex-col gap-2.5">
+                {/* Primary Card Actions */}
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => onEditList(list)}
+                    className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-bold text-xs py-2 px-3 shadow-md shadow-cyan-950/40 transition hover:from-cyan-400 hover:to-blue-500 active:scale-95 min-h-[38px] cursor-pointer"
+                  >
+                    <Edit className="h-4 w-4" />
+                    <span>Editar / Montar Lista</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => onPreviewList(list)}
+                    className="flex items-center justify-center gap-1.5 rounded-xl border border-cyan-500/40 bg-cyan-950/40 px-3 py-2 text-xs font-semibold text-cyan-300 hover:bg-cyan-900/50 active:scale-95 min-h-[38px] transition cursor-pointer"
+                  >
+                    <Eye className="h-4 w-4" />
+                    <span>Ver</span>
+                  </button>
+                </div>
+
+                {/* Secondary Actions Strip */}
+                <div className="flex items-center justify-between gap-1.5 pt-1 border-t border-zinc-850/60">
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => onOpenWhatsApp(list)}
+                      title="Compartilhar via WhatsApp"
+                      className="flex h-9 w-9 items-center justify-center rounded-xl border border-emerald-500/30 bg-emerald-950/30 text-emerald-400 hover:bg-emerald-900/50 transition cursor-pointer"
+                    >
+                      <MessageSquare className="h-4 w-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => exportListToPDF(list, settings)}
+                      title="Exportar PDF"
+                      className="flex h-9 w-9 items-center justify-center rounded-xl border border-rose-500/30 bg-rose-950/30 text-rose-400 hover:bg-rose-900/50 transition cursor-pointer"
+                    >
+                      <FileText className="h-4 w-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => exportListToExcel(list, settings)}
+                      title="Exportar Planilha Excel"
+                      className="flex h-9 w-9 items-center justify-center rounded-xl border border-emerald-500/30 bg-emerald-950/30 text-emerald-400 hover:bg-emerald-900/50 transition cursor-pointer"
+                    >
+                      <FileSpreadsheet className="h-4 w-4" />
+                    </button>
+                  </div>
+
+                  <div className="flex items-center gap-1.5">
+                    {onGenerateRequisition && (
+                      <button
+                        type="button"
+                        onClick={() => onGenerateRequisition(list)}
+                        className="flex items-center gap-1 rounded-xl border border-amber-500/40 bg-amber-950/40 px-2.5 py-1.5 text-xs font-semibold text-amber-300 hover:bg-amber-900/50 min-h-[36px] transition cursor-pointer"
+                        title="Gerar Solicitação de Insumos"
+                      >
+                        <ClipboardList className="h-3.5 w-3.5" />
+                        <span className="hidden xs:inline">Solicitar</span>
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => onDuplicateList(list.id)}
+                      title="Duplicar / Clonar"
+                      className="flex h-9 w-9 items-center justify-center rounded-xl text-zinc-400 hover:bg-zinc-800 transition cursor-pointer"
+                    >
+                      <Copy className="h-4 w-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setDeleteConfirmId(list.id)}
+                      title="Excluir Lista"
+                      className="flex h-9 w-9 items-center justify-center rounded-xl text-zinc-500 hover:bg-red-950/50 hover:text-red-400 transition cursor-pointer"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-5">
       {/* Top Banner / Actions Bar */}
@@ -260,77 +445,102 @@ export const ListsView: React.FC<ListsViewProps> = ({
       </div>
 
       {/* Filter and Search Bar */}
-      <div className="grid grid-cols-1 gap-3 rounded-2xl border border-zinc-800/80 bg-zinc-900/60 p-3.5 backdrop-blur-md sm:grid-cols-2 lg:grid-cols-5">
-        {/* Search input */}
-        <div className="relative lg:col-span-2">
-          <Search className="absolute left-3 top-2.5 h-4 w-4 text-zinc-500" />
-          <input
-            id="input-search-lists"
-            type="text"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Pesquisar por lista, máquina, cliente, item..."
-            className="w-full rounded-xl border border-zinc-800 bg-zinc-950/80 pl-9 pr-3 py-2 text-xs text-zinc-100 placeholder-zinc-500 outline-none transition focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/20"
-          />
-          {searchTerm && (
-            <button
-              onClick={() => setSearchTerm('')}
-              className="absolute right-3 top-2 text-[10px] text-zinc-500 hover:text-zinc-300"
+      <div className="rounded-2xl border border-zinc-800/80 bg-zinc-900/60 p-3.5 backdrop-blur-md">
+        <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center">
+          {/* Search input */}
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-2.5 h-4 w-4 text-zinc-500" />
+            <input
+              id="input-search-lists"
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Pesquisar por lista, máquina, cliente, item..."
+              className="w-full rounded-xl border border-zinc-800 bg-zinc-950/80 pl-9 pr-3 py-2 text-xs text-zinc-100 placeholder-zinc-500 outline-none transition focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/20"
+            />
+            {searchTerm && (
+              <button
+                onClick={() => setSearchTerm('')}
+                className="absolute right-3 top-2 text-[10px] text-zinc-500 hover:text-zinc-300"
+              >
+                Limpar
+              </button>
+            )}
+          </div>
+
+          {/* Mobile Filter Toggle Button */}
+          <button
+            type="button"
+            onClick={() => setIsMobileFiltersOpen(!isMobileFiltersOpen)}
+            className={`flex sm:hidden items-center justify-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-semibold transition ${
+              hasActiveFilters
+                ? 'border-cyan-500/50 bg-cyan-950/40 text-cyan-300'
+                : 'border-zinc-800 bg-zinc-950 text-zinc-400'
+            }`}
+          >
+            <Filter className="h-3.5 w-3.5" />
+            <span>{isMobileFiltersOpen ? 'Ocultar Filtros' : 'Filtros Avançados'}</span>
+            {hasActiveFilters && (
+              <span className="h-2 w-2 rounded-full bg-cyan-400 animate-pulse" />
+            )}
+          </button>
+        </div>
+
+        {/* Collapsible Dropdowns on mobile, always visible on tablet/desktop */}
+        <div className={`mt-3 grid grid-cols-1 sm:grid-cols-3 gap-2.5 ${isMobileFiltersOpen ? 'grid' : 'hidden sm:grid'}`}>
+          {/* Filter by Machine */}
+          <div>
+            <label className="text-[10px] font-semibold text-zinc-400 mb-1 block sm:hidden">Filtrar Máquina:</label>
+            <select
+              id="filter-machine"
+              value={selectedMachine}
+              onChange={(e) => setSelectedMachine(e.target.value)}
+              className="w-full rounded-xl border border-zinc-800 bg-zinc-950/80 px-3 py-2 text-xs text-zinc-200 outline-none transition focus:border-cyan-500"
             >
-              Limpar
-            </button>
-          )}
-        </div>
+              <option value="ALL">Todas as Máquinas</option>
+              {uniqueMachines.map((m) => (
+                <option key={m} value={m}>
+                  {m}
+                </option>
+              ))}
+            </select>
+          </div>
 
-        {/* Filter by Machine */}
-        <div>
-          <select
-            id="filter-machine"
-            value={selectedMachine}
-            onChange={(e) => setSelectedMachine(e.target.value)}
-            className="w-full rounded-xl border border-zinc-800 bg-zinc-950/80 px-3 py-2 text-xs text-zinc-200 outline-none transition focus:border-cyan-500"
-          >
-            <option value="ALL">Todas as Máquinas</option>
-            {uniqueMachines.map((m) => (
-              <option key={m} value={m}>
-                {m}
-              </option>
-            ))}
-          </select>
-        </div>
+          {/* Filter by Client */}
+          <div>
+            <label className="text-[10px] font-semibold text-zinc-400 mb-1 block sm:hidden">Filtrar Cliente:</label>
+            <select
+              id="filter-client"
+              value={selectedClient}
+              onChange={(e) => setSelectedClient(e.target.value)}
+              className="w-full rounded-xl border border-zinc-800 bg-zinc-950/80 px-3 py-2 text-xs text-zinc-200 outline-none transition focus:border-cyan-500"
+            >
+              <option value="ALL">Todos os Clientes</option>
+              {uniqueClients.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
+          </div>
 
-        {/* Filter by Client */}
-        <div>
-          <select
-            id="filter-client"
-            value={selectedClient}
-            onChange={(e) => setSelectedClient(e.target.value)}
-            className="w-full rounded-xl border border-zinc-800 bg-zinc-950/80 px-3 py-2 text-xs text-zinc-200 outline-none transition focus:border-cyan-500"
-          >
-            <option value="ALL">Todos os Clientes</option>
-            {uniqueClients.map((c) => (
-              <option key={c} value={c}>
-                {c}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {/* Filter by Status */}
-        <div>
-          <select
-            id="filter-status"
-            value={selectedStatus}
-            onChange={(e) => setSelectedStatus(e.target.value)}
-            className="w-full rounded-xl border border-zinc-800 bg-zinc-950/80 px-3 py-2 text-xs text-zinc-200 outline-none transition focus:border-cyan-500"
-          >
-            <option value="ALL">Todos os Status</option>
-            <option value="Em Andamento">Em Andamento</option>
-            <option value="Concluída">Concluída</option>
-            <option value="Aprovada">Aprovada</option>
-            <option value="Rascunho">Rascunho</option>
-            <option value="Entregue">Entregue</option>
-          </select>
+          {/* Filter by Status */}
+          <div>
+            <label className="text-[10px] font-semibold text-zinc-400 mb-1 block sm:hidden">Filtrar Status:</label>
+            <select
+              id="filter-status"
+              value={selectedStatus}
+              onChange={(e) => setSelectedStatus(e.target.value)}
+              className="w-full rounded-xl border border-zinc-800 bg-zinc-950/80 px-3 py-2 text-xs text-zinc-200 outline-none transition focus:border-cyan-500"
+            >
+              <option value="ALL">Todos os Status</option>
+              <option value="Em Andamento">Em Andamento</option>
+              <option value="Concluída">Concluída</option>
+              <option value="Aprovada">Aprovada</option>
+              <option value="Rascunho">Rascunho</option>
+              <option value="Entregue">Entregue</option>
+            </select>
+          </div>
         </div>
       </div>
 
@@ -376,9 +586,15 @@ export const ListsView: React.FC<ListsViewProps> = ({
           </button>
         </div>
       ) : viewMode === 'table' ? (
-        /* TABLE VIEW */
-        <div className="overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-950 shadow-xl">
-          <div className="overflow-x-auto">
+        <>
+          {/* MOBILE VIEW: Touch-friendly cards for phone usability */}
+          <div className="block md:hidden space-y-3.5">
+            {filteredAndSortedLists.map(renderListCard)}
+          </div>
+
+          {/* DESKTOP VIEW: Data Table */}
+          <div className="hidden md:block overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-950 shadow-xl">
+            <div className="overflow-x-auto">
             <table className="w-full text-left text-xs text-zinc-300">
               <thead className="border-b border-zinc-800 bg-zinc-900/90 text-zinc-400">
                 <tr>
@@ -625,171 +841,11 @@ export const ListsView: React.FC<ListsViewProps> = ({
             </table>
           </div>
         </div>
+      </>
       ) : (
         /* CARDS VIEW */
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {filteredAndSortedLists.map((list) => {
-            const totalCost = list.items.reduce((acc, i) => acc + (Number(i.totalCost) || 0), 0);
-            const totalWeight = list.items.reduce((acc, i) => acc + (Number(i.totalWeight) || 0), 0);
-            const isDeleting = deleteConfirmId === list.id;
-
-            return (
-              <div
-                key={list.id}
-                className="flex flex-col justify-between rounded-2xl border border-zinc-800 bg-zinc-950 p-5 shadow-xl transition hover:border-zinc-700/80"
-              >
-                <div>
-                  {/* Top info and status */}
-                  <div className="flex items-start justify-between gap-2 border-b border-zinc-800/80 pb-3">
-                    <div>
-                      <h3
-                        onClick={() => onPreviewList(list)}
-                        title="Clique para visualizar a lista"
-                        className="cursor-pointer font-semibold text-zinc-100 transition hover:text-cyan-400"
-                      >
-                        {list.name}
-                      </h3>
-                      <div className="mt-1 flex items-center gap-1.5 text-xs text-zinc-400">
-                        <Cog className="h-3.5 w-3.5 text-cyan-400" />
-                        <span>{list.machine}</span>
-                      </div>
-                    </div>
-                    <div>{getStatusBadge(list.status)}</div>
-                  </div>
-
-                  {/* Client, Date, Items */}
-                  <div className="mt-3 space-y-2 text-xs">
-                    <div className="flex items-center justify-between text-zinc-400">
-                      <span className="flex items-center gap-1 text-zinc-500">
-                        <Building2 className="h-3.5 w-3.5" /> Cliente:
-                      </span>
-                      <span className="font-medium text-zinc-200">{list.client || '-'}</span>
-                    </div>
-
-                    <div className="flex items-center justify-between text-zinc-400">
-                      <span className="flex items-center gap-1 text-zinc-500">
-                        <Calendar className="h-3.5 w-3.5" /> Data:
-                      </span>
-                      <span className="text-zinc-300">{formatDate(list.date)}</span>
-                    </div>
-
-                    <div className="flex items-center justify-between text-zinc-400">
-                      <span className="text-zinc-500">Total de Itens:</span>
-                      <span className="rounded bg-zinc-900 px-2 py-0.5 font-mono font-bold text-zinc-200">
-                        {list.items.length} itens
-                      </span>
-                    </div>
-
-                    {totalCost > 0 && (
-                      <div className="flex items-center justify-between text-zinc-400">
-                        <span className="text-zinc-500">Custo Estimado:</span>
-                        <span className="font-mono font-bold text-emerald-400">
-                          {formatCurrency(totalCost, settings.currencySymbol)}
-                        </span>
-                      </div>
-                    )}
-
-                    {totalWeight > 0 && (
-                      <div className="flex items-center justify-between text-zinc-400">
-                        <span className="text-zinc-500">Peso Total:</span>
-                        <span className="text-zinc-300">{totalWeight.toFixed(2)} kg</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Card Actions Footer */}
-                <div className="mt-4 flex items-center justify-between border-t border-zinc-800/80 pt-3">
-                  {isDeleting ? (
-                    <div className="flex w-full items-center justify-between">
-                      <span className="text-xs text-red-400">Confirmar exclusão?</span>
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => onDeleteList(list.id)}
-                          className="rounded bg-red-600 px-2.5 py-1 text-xs font-bold text-white hover:bg-red-500"
-                        >
-                          Sim
-                        </button>
-                        <button
-                          onClick={() => setDeleteConfirmId(null)}
-                          className="rounded bg-zinc-800 px-2.5 py-1 text-xs text-zinc-300 hover:bg-zinc-700"
-                        >
-                          Não
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <>
-                      <div className="flex items-center gap-1">
-                        <button
-                          onClick={() => onOpenWhatsApp(list)}
-                          title="WhatsApp"
-                          className="rounded-lg p-1.5 text-emerald-400 transition hover:bg-emerald-950/60"
-                        >
-                          <MessageSquare className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={() => exportListToPDF(list, settings)}
-                          title="PDF"
-                          className="rounded-lg p-1.5 text-rose-400 transition hover:bg-rose-950/60"
-                        >
-                          <FileText className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={() => exportListToExcel(list, settings)}
-                          title="Excel"
-                          className="rounded-lg p-1.5 text-emerald-400 transition hover:bg-emerald-950/60"
-                        >
-                          <FileSpreadsheet className="h-4 w-4" />
-                        </button>
-                      </div>
-
-                      <div className="flex items-center gap-1.5">
-                        {onGenerateRequisition && (
-                          <button
-                            onClick={() => onGenerateRequisition(list)}
-                            className="flex items-center gap-1 rounded-lg border border-amber-500/30 bg-amber-950/40 px-2.5 py-1.5 text-xs font-medium text-amber-300 transition hover:bg-amber-900/50 hover:text-amber-200"
-                            title="Gerar Solicitação de Insumos a partir desta Lista"
-                          >
-                            <ClipboardList className="h-3.5 w-3.5" />
-                            <span>Solicitar</span>
-                          </button>
-                        )}
-                        <button
-                          onClick={() => onPreviewList(list)}
-                          className="flex items-center gap-1 rounded-lg border border-cyan-500/30 bg-cyan-950/40 px-2.5 py-1.5 text-xs font-medium text-cyan-400 transition hover:bg-cyan-900/50 hover:text-cyan-300"
-                        >
-                          <Eye className="h-3.5 w-3.5" />
-                          <span>Ver</span>
-                        </button>
-                        <button
-                          onClick={() => onEditList(list)}
-                          className="flex items-center gap-1 rounded-lg bg-zinc-800 px-2.5 py-1.5 text-xs font-medium text-zinc-200 transition hover:bg-zinc-700"
-                        >
-                          <Edit className="h-3.5 w-3.5" />
-                          <span>Editar</span>
-                        </button>
-                        <button
-                          onClick={() => onDuplicateList(list.id)}
-                          title="Duplicar"
-                          className="rounded-lg p-1.5 text-zinc-400 transition hover:bg-zinc-800"
-                        >
-                          <Copy className="h-4 w-4" />
-                        </button>
-                        <button
-                          onClick={() => setDeleteConfirmId(list.id)}
-                          title="Excluir"
-                          className="rounded-lg p-1.5 text-zinc-500 transition hover:bg-red-950/50 hover:text-red-400"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </>
-                  )}
-                </div>
-              </div>
-            );
-          })}
+          {filteredAndSortedLists.map(renderListCard)}
         </div>
       )}
     </div>

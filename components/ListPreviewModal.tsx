@@ -435,8 +435,64 @@ const ListPreviewModalContent: React.FC<ListPreviewModalContentProps> = ({
               Nenhum item corresponde ao filtro aplicado.
             </div>
           ) : (
-            <div className="overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900/50">
-              <div className="overflow-x-auto">
+            <>
+              {/* MOBILE VIEW: Touch-friendly cards for phones */}
+              <div className="block sm:hidden space-y-2.5">
+                {filteredItems.map((item, idx) => {
+                  const itemCost = Number(item.unitCost) || 0;
+                  const itemTotal = Number(item.totalCost) || itemCost * (Number(item.quantity) || 1);
+                  const itemWeight = Number(item.totalWeight) || 0;
+
+                  return (
+                    <div
+                      key={item.id || idx}
+                      className="rounded-xl border border-zinc-800 bg-zinc-900/70 p-3 space-y-1.5"
+                    >
+                      <div className="flex items-center justify-between text-xs">
+                        <div className="flex items-center gap-1.5">
+                          <span className="flex h-5 w-5 items-center justify-center rounded bg-zinc-800 font-mono text-[10px] text-zinc-400 font-bold">
+                            {idx + 1}
+                          </span>
+                          <span className="font-mono font-bold text-cyan-400">
+                            {item.code || '-'}
+                          </span>
+                          <span className="rounded bg-zinc-800 px-1.5 py-0.5 text-[9px] text-zinc-400">
+                            {item.group}
+                          </span>
+                        </div>
+
+                        <span className="rounded bg-cyan-950/60 px-2 py-0.5 font-mono text-xs font-bold text-zinc-200 border border-cyan-500/30">
+                          {item.quantity} {item.unit || 'PÇ'}
+                        </span>
+                      </div>
+
+                      <div className="font-medium text-xs text-zinc-100">
+                        {item.description}
+                      </div>
+
+                      {item.notes && (
+                        <div className="text-[11px] text-zinc-400 italic">
+                          ↳ Obs: {item.notes}
+                        </div>
+                      )}
+
+                      <div className="flex items-center justify-between pt-1 border-t border-zinc-800/80 text-[11px]">
+                        <span className="text-zinc-500">
+                          Unit: {itemCost > 0 ? formatCurrency(itemCost, settings.currencySymbol) : '-'}
+                          {itemWeight > 0 && ` • ${itemWeight.toFixed(2)} kg`}
+                        </span>
+                        <span className="font-mono font-bold text-emerald-400">
+                          {itemTotal > 0 ? formatCurrency(itemTotal, settings.currencySymbol) : '-'}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* DESKTOP VIEW: Multi-column Table */}
+              <div className="hidden sm:block overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900/50">
+                <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs text-zinc-300">
                   <thead className="border-b border-zinc-800 bg-zinc-900/90 font-semibold text-zinc-400">
                     <tr>
@@ -526,6 +582,7 @@ const ListPreviewModalContent: React.FC<ListPreviewModalContentProps> = ({
                 </table>
               </div>
             </div>
+            </>
           )}
         </div>
 

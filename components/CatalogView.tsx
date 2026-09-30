@@ -69,6 +69,9 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
   const [selectedItemIds, setSelectedItemIds] = useState<Set<string>>(new Set());
   const [showDeleteAllModal, setShowDeleteAllModal] = useState(false);
   const [showDeleteSelectedModal, setShowDeleteSelectedModal] = useState(false);
+  const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
+
+  const hasActiveFilters = selectedGroup !== 'ALL' || selectedUnit !== 'ALL';
 
   // Sorting helper
   const handleSort = (field: CatalogSortField) => {
@@ -227,61 +230,63 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
-          {/* Export to Excel */}
-          <button
-            onClick={() => exportCatalogToExcel(catalog, settings)}
-            className="flex items-center gap-1.5 rounded-xl border border-emerald-600/40 bg-emerald-950/40 px-3.5 py-2 text-xs font-semibold text-emerald-400 transition hover:bg-emerald-900/50"
-            title="Exportar todo o catálogo para Excel"
-          >
-            <FileSpreadsheet className="h-4 w-4" />
-            <span>Exportar Excel</span>
-          </button>
-
-          {/* Import from Excel */}
-          {onSaveCatalog && onSaveSettings && (
-            <button
-              id="btn-catalog-import-excel"
-              onClick={() => setIsImportModalOpen(true)}
-              className="flex items-center gap-1.5 rounded-xl border border-emerald-500/50 bg-emerald-500/10 px-3.5 py-2 text-xs font-semibold text-emerald-300 transition hover:bg-emerald-500/20"
-              title="Importar materiais de planilha Excel (.xlsx, .xls, .csv)"
-            >
-              <Upload className="h-4 w-4 text-emerald-400" />
-              <span>Importar Excel</span>
-            </button>
-          )}
-
-          {/* Delete All button */}
-          <button
-            id="btn-delete-all-catalog"
-            onClick={() => setShowDeleteAllModal(true)}
-            disabled={catalog.length === 0}
-            className="flex items-center gap-1.5 rounded-xl border border-rose-500/40 bg-rose-950/30 px-3.5 py-2 text-xs font-semibold text-rose-300 transition hover:bg-rose-900/50 hover:text-rose-200 disabled:opacity-40 disabled:cursor-not-allowed shadow-sm"
-            title="Excluir todos os materiais cadastrados do catálogo"
-          >
-            <Trash2 className="h-4 w-4 text-rose-400" />
-            <span>Excluir Todos ({catalog.length})</span>
-          </button>
-
-          {/* Reset button */}
-          <button
-            onClick={() => setShowResetConfirm(true)}
-            className="flex items-center gap-1.5 rounded-xl border border-zinc-800 bg-zinc-900 px-3 py-2 text-xs font-medium text-zinc-400 transition hover:bg-zinc-800 hover:text-zinc-200"
-            title="Restaurar banco original com 300+ itens da PDF"
-          >
-            <RotateCcw className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">Restaurar Banco</span>
-          </button>
-
-          {/* Add Item Button */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+          {/* Add Item Button (Primary on Mobile) */}
           <button
             id="btn-add-new-catalog-item"
             onClick={onOpenAddItemModal}
-            className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 px-4 py-2 text-xs font-semibold text-white shadow-lg shadow-cyan-950/40 transition hover:from-cyan-400 hover:to-blue-500"
+            className="flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 px-4 py-2.5 text-xs font-bold text-white shadow-lg shadow-cyan-950/40 transition hover:from-cyan-400 hover:to-blue-500 min-h-[40px] order-1 sm:order-2"
           >
             <PlusCircle className="h-4 w-4" />
             <span>+ Novo Item</span>
           </button>
+
+          <div className="grid grid-cols-2 sm:flex items-center gap-2 order-2 sm:order-1">
+            {/* Export to Excel */}
+            <button
+              onClick={() => exportCatalogToExcel(catalog, settings)}
+              className="flex items-center justify-center gap-1.5 rounded-xl border border-emerald-600/40 bg-emerald-950/40 px-3 py-2 text-xs font-semibold text-emerald-400 transition hover:bg-emerald-900/50 min-h-[38px]"
+              title="Exportar todo o catálogo para Excel"
+            >
+              <FileSpreadsheet className="h-4 w-4" />
+              <span>Exportar</span>
+            </button>
+
+            {/* Import from Excel */}
+            {onSaveCatalog && onSaveSettings && (
+              <button
+                id="btn-catalog-import-excel"
+                onClick={() => setIsImportModalOpen(true)}
+                className="flex items-center justify-center gap-1.5 rounded-xl border border-emerald-500/50 bg-emerald-500/10 px-3 py-2 text-xs font-semibold text-emerald-300 transition hover:bg-emerald-500/20 min-h-[38px]"
+                title="Importar materiais de planilha Excel (.xlsx, .xls, .csv)"
+              >
+                <Upload className="h-4 w-4 text-emerald-400" />
+                <span>Importar</span>
+              </button>
+            )}
+
+            {/* Reset button */}
+            <button
+              onClick={() => setShowResetConfirm(true)}
+              className="flex items-center justify-center gap-1.5 rounded-xl border border-zinc-800 bg-zinc-900 px-3 py-2 text-xs font-medium text-zinc-400 transition hover:bg-zinc-800 hover:text-zinc-200 min-h-[38px]"
+              title="Restaurar banco original com 300+ itens da PDF"
+            >
+              <RotateCcw className="h-3.5 w-3.5" />
+              <span>Restaurar</span>
+            </button>
+
+            {/* Delete All button */}
+            <button
+              id="btn-delete-all-catalog"
+              onClick={() => setShowDeleteAllModal(true)}
+              disabled={catalog.length === 0}
+              className="flex items-center justify-center gap-1.5 rounded-xl border border-rose-500/40 bg-rose-950/30 px-3 py-2 text-xs font-semibold text-rose-300 transition hover:bg-rose-900/50 hover:text-rose-200 disabled:opacity-40 disabled:cursor-not-allowed shadow-sm min-h-[38px]"
+              title="Excluir todos os materiais cadastrados do catálogo"
+            >
+              <Trash2 className="h-4 w-4 text-rose-400" />
+              <span>Limpar ({catalog.length})</span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -319,60 +324,84 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
       )}
 
       {/* Search and Filters Bar */}
-      <div className="grid grid-cols-1 gap-3 rounded-2xl border border-zinc-800/80 bg-zinc-900/60 p-3.5 backdrop-blur-md sm:grid-cols-2 lg:grid-cols-4">
-        {/* Search text */}
-        <div className="relative lg:col-span-2">
-          <Search className="absolute left-3 top-2.5 h-4 w-4 text-zinc-500" />
-          <input
-            id="input-search-catalog"
-            type="text"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Pesquisar por código, descrição, grupo... (ex: 6204, ASA, TUBO, M10)"
-            className="w-full rounded-xl border border-zinc-800 bg-zinc-950/80 pl-9 pr-3 py-2 text-xs text-zinc-100 placeholder-zinc-500 outline-none transition focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/20"
-          />
-          {searchTerm && (
-            <button
-              onClick={() => setSearchTerm('')}
-              className="absolute right-3 top-2 text-[10px] text-zinc-500 hover:text-zinc-300"
+      <div className="rounded-2xl border border-zinc-800/80 bg-zinc-900/60 p-3.5 backdrop-blur-md">
+        <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center">
+          {/* Search text */}
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-2.5 h-4 w-4 text-zinc-500" />
+            <input
+              id="input-search-catalog"
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Pesquisar por código, descrição, grupo... (ex: 6204, ASA, TUBO, M10)"
+              className="w-full rounded-xl border border-zinc-800 bg-zinc-950/80 pl-9 pr-3 py-2 text-xs text-zinc-100 placeholder-zinc-500 outline-none transition focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500/20"
+            />
+            {searchTerm && (
+              <button
+                onClick={() => setSearchTerm('')}
+                className="absolute right-3 top-2 text-[10px] text-zinc-500 hover:text-zinc-300"
+              >
+                Limpar
+              </button>
+            )}
+          </div>
+
+          {/* Mobile Filter Toggle Button */}
+          <button
+            type="button"
+            onClick={() => setIsMobileFiltersOpen(!isMobileFiltersOpen)}
+            className={`flex sm:hidden items-center justify-center gap-1.5 rounded-xl border px-3 py-2 text-xs font-semibold transition ${
+              hasActiveFilters
+                ? 'border-cyan-500/50 bg-cyan-950/40 text-cyan-300'
+                : 'border-zinc-800 bg-zinc-950 text-zinc-400'
+            }`}
+          >
+            <Filter className="h-3.5 w-3.5" />
+            <span>{isMobileFiltersOpen ? 'Ocultar Filtros' : 'Filtros'}</span>
+            {hasActiveFilters && (
+              <span className="h-2 w-2 rounded-full bg-cyan-400 animate-pulse" />
+            )}
+          </button>
+        </div>
+
+        {/* Collapsible Filters on mobile */}
+        <div className={`mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2.5 ${isMobileFiltersOpen ? 'grid' : 'hidden sm:grid'}`}>
+          {/* Filter by Group */}
+          <div>
+            <label className="text-[10px] font-semibold text-zinc-400 mb-1 block sm:hidden">Categoria / Grupo:</label>
+            <select
+              id="filter-catalog-group"
+              value={selectedGroup}
+              onChange={(e) => setSelectedGroup(e.target.value)}
+              className="w-full rounded-xl border border-zinc-800 bg-zinc-950/80 px-3 py-2 text-xs text-zinc-200 outline-none transition focus:border-cyan-500"
             >
-              Limpar
-            </button>
-          )}
-        </div>
+              <option value="ALL">Todos os Grupos / Categorias</option>
+              {settings.groups.map((g) => (
+                <option key={g} value={g}>
+                  {g}
+                </option>
+              ))}
+            </select>
+          </div>
 
-        {/* Filter by Group */}
-        <div>
-          <select
-            id="filter-catalog-group"
-            value={selectedGroup}
-            onChange={(e) => setSelectedGroup(e.target.value)}
-            className="w-full rounded-xl border border-zinc-800 bg-zinc-950/80 px-3 py-2 text-xs text-zinc-200 outline-none transition focus:border-cyan-500"
-          >
-            <option value="ALL">Todos os Grupos / Categorias</option>
-            {settings.groups.map((g) => (
-              <option key={g} value={g}>
-                {g}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {/* Filter by Unit */}
-        <div>
-          <select
-            id="filter-catalog-unit"
-            value={selectedUnit}
-            onChange={(e) => setSelectedUnit(e.target.value)}
-            className="w-full rounded-xl border border-zinc-800 bg-zinc-950/80 px-3 py-2 text-xs text-zinc-200 outline-none transition focus:border-cyan-500"
-          >
-            <option value="ALL">Todas as Unidades</option>
-            {settings.units.map((u) => (
-              <option key={u} value={u}>
-                Unidade: {u}
-              </option>
-            ))}
-          </select>
+          {/* Filter by Unit */}
+          <div>
+            <label className="text-[10px] font-semibold text-zinc-400 mb-1 block sm:hidden">Unidade de Medida:</label>
+            <select
+              id="filter-catalog-unit"
+              value={selectedUnit}
+              onChange={(e) => setSelectedUnit(e.target.value)}
+              className="w-full rounded-xl border border-zinc-800 bg-zinc-950/80 px-3 py-2 text-xs text-zinc-200 outline-none transition focus:border-cyan-500"
+            >
+              <option value="ALL">Todas as Unidades</option>
+              {settings.units.map((u) => (
+                <option key={u} value={u}>
+                  Unidade: {u}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
       </div>
 
@@ -450,8 +479,121 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
         </div>
       </div>
 
-      {/* Catalog Table */}
-      <div className="overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-950 shadow-xl">
+      {/* MOBILE VIEW: Catalog Item Cards (Touch-friendly for phones) */}
+      <div className="block md:hidden space-y-3">
+        {filteredAndSortedCatalog.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-zinc-800 bg-zinc-950/60 p-8 text-center text-xs text-zinc-500">
+            Nenhum material encontrado no catálogo com os filtros aplicados.
+          </div>
+        ) : (
+          filteredAndSortedCatalog.map((item) => {
+            const isSelected = selectedItemIds.has(item.id);
+            const isDeleting = deleteConfirmId === item.id;
+
+            return (
+              <div
+                key={item.id}
+                className={`rounded-2xl border p-4 transition shadow-lg ${
+                  isSelected
+                    ? 'border-rose-500/50 bg-rose-950/20'
+                    : 'border-zinc-800 bg-zinc-950/90 hover:border-zinc-700'
+                }`}
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <input
+                      type="checkbox"
+                      checked={isSelected}
+                      onChange={() => toggleSelectItem(item.id)}
+                      className="h-4 w-4 cursor-pointer rounded border-zinc-700 bg-zinc-800 accent-rose-500"
+                    />
+                    <span className="rounded bg-zinc-800 px-2 py-0.5 font-mono text-xs font-bold text-cyan-400">
+                      {item.code}
+                    </span>
+                    <span className="rounded bg-zinc-900 px-1.5 py-0.5 text-[10px] text-zinc-400 border border-zinc-800">
+                      {item.group}
+                    </span>
+                  </div>
+
+                  <span className="rounded bg-cyan-950/60 px-2 py-0.5 text-[10px] font-bold text-cyan-300 border border-cyan-500/30">
+                    {item.unit}
+                  </span>
+                </div>
+
+                <div className="mt-2 text-xs sm:text-sm font-semibold text-zinc-100">
+                  {item.description}
+                </div>
+                {item.notes && (
+                  <div className="mt-1 text-[11px] text-zinc-400 italic">
+                    ↳ Obs: {item.notes}
+                  </div>
+                )}
+
+                <div className="mt-3 flex items-center justify-between border-t border-zinc-850/80 pt-2.5 text-xs">
+                  <div className="space-y-0.5">
+                    <div className="text-[10px] text-zinc-500">Custo Base:</div>
+                    <div className="font-mono font-bold text-emerald-400">
+                      {item.cost > 0 ? formatCurrency(item.cost, settings.currencySymbol) : '-'}
+                    </div>
+                  </div>
+
+                  {item.weightBar > 0 && (
+                    <div className="space-y-0.5">
+                      <div className="text-[10px] text-zinc-500">Peso Ref:</div>
+                      <div className="font-mono text-zinc-300 text-xs">
+                        {item.weightBar} kg
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="flex items-center gap-1.5">
+                    {isDeleting ? (
+                      <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() => onDeleteItem(item.id)}
+                          className="rounded-lg bg-red-600 px-2.5 py-1 text-xs font-bold text-white hover:bg-red-500 min-h-[36px]"
+                        >
+                          Sim
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setDeleteConfirmId(null)}
+                          className="rounded-lg bg-zinc-800 px-2.5 py-1 text-xs text-zinc-300 hover:bg-zinc-700 min-h-[36px]"
+                        >
+                          Não
+                        </button>
+                      </div>
+                    ) : (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => onEditItem(item)}
+                          className="flex h-9 w-9 items-center justify-center rounded-xl border border-zinc-800 bg-zinc-900 text-zinc-300 hover:text-cyan-300 hover:border-cyan-500/40 transition cursor-pointer"
+                          title="Editar"
+                        >
+                          <Edit2 className="h-4 w-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setDeleteConfirmId(item.id)}
+                          className="flex h-9 w-9 items-center justify-center rounded-xl border border-zinc-800 bg-zinc-900 text-zinc-400 hover:text-red-400 hover:border-red-500/40 transition cursor-pointer"
+                          title="Excluir"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
+
+      {/* DESKTOP VIEW: Catalog Table (hidden on mobile) */}
+      <div className="hidden md:block overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-950 shadow-xl">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs text-zinc-300">
             <thead className="border-b border-zinc-800 bg-zinc-900/90 text-zinc-400">

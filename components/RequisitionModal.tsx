@@ -471,30 +471,31 @@ const RequisitionModalContent: React.FC<RequisitionModalContentProps> = ({
     <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/80 p-3 backdrop-blur-sm sm:p-5">
       <div className="relative flex max-h-[92vh] w-full max-w-4xl flex-col rounded-2xl border border-zinc-700/80 bg-zinc-900 shadow-2xl shadow-cyan-950/40">
         {/* Modal Header */}
-        <div className="flex items-center justify-between border-b border-zinc-800 px-6 py-4">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-cyan-500/30 bg-cyan-500/10 text-cyan-400">
+        <div className="flex items-center justify-between border-b border-zinc-800 px-4 py-3 sm:px-6 sm:py-4">
+          <div className="flex items-center gap-2.5 sm:gap-3">
+            <div className="flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-xl border border-cyan-500/30 bg-cyan-500/10 text-cyan-400">
               <FileText className="h-5 w-5" />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-zinc-100 sm:text-xl">
+              <h2 className="text-base font-bold text-zinc-100 sm:text-xl">
                 {isEditing ? 'Editar Solicitação de Insumos' : 'Nova Solicitação de Insumos'}
               </h2>
-              <p className="text-xs text-zinc-400">
+              <p className="text-[11px] sm:text-xs text-zinc-400">
                 Requisição interna para compras, almoxarifado ou manutenção
               </p>
             </div>
           </div>
           <button
+            type="button"
             onClick={onClose}
-            className="rounded-lg p-2 text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-zinc-100"
+            className="rounded-xl p-2 text-zinc-400 transition-colors hover:bg-zinc-800 hover:text-zinc-100 min-h-[40px] min-w-[40px] flex items-center justify-center"
           >
             <X className="h-5 w-5" />
           </button>
         </div>
 
         {/* Modal Body / Scrollable Content */}
-        <form onSubmit={handleSubmit} className="flex flex-1 flex-col overflow-y-auto p-6 space-y-6">
+        <form onSubmit={handleSubmit} className="flex flex-1 flex-col overflow-y-auto p-3.5 sm:p-6 space-y-4 sm:space-y-6">
           {errorMsg && (
             <div className="flex items-center gap-2 rounded-xl border border-rose-500/40 bg-rose-500/10 p-3.5 text-sm text-rose-300">
               <AlertTriangle className="h-4 w-4 shrink-0 text-rose-400" />
@@ -1041,7 +1042,7 @@ const RequisitionModalContent: React.FC<RequisitionModalContentProps> = ({
               )}
             </div>
 
-            {/* Items Table */}
+            {/* Items Table / Cards */}
             {items.length === 0 ? (
               <div className="rounded-xl border border-dashed border-zinc-800 p-8 text-center">
                 <Package className="mx-auto h-8 w-8 text-zinc-600 mb-2" />
@@ -1051,101 +1052,215 @@ const RequisitionModalContent: React.FC<RequisitionModalContentProps> = ({
                 </p>
               </div>
             ) : (
-              <div className="overflow-x-auto rounded-lg border border-zinc-800">
-                <table className="w-full text-left text-xs">
-                  <thead className="border-b border-zinc-800 bg-zinc-900/80 text-[11px] uppercase tracking-wider text-zinc-400">
-                    <tr>
-                      <th className="px-3 py-2.5">Código / Insumo</th>
-                      <th className="px-3 py-2.5 w-24 text-center">Qtd.</th>
-                      <th className="px-2 py-2.5 w-16 text-center">Unid.</th>
-                      <th className="px-3 py-2.5 w-28 text-right">Valor Est.</th>
-                      <th className="px-3 py-2.5 w-28 text-right">Subtotal</th>
-                      <th className="px-3 py-2.5">Aplicação / Destino</th>
-                      <th className="px-2 py-2.5 w-10 text-center"></th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-zinc-800/60 bg-zinc-900/40">
-                    {items.map((it) => (
-                      <tr key={it.id} className="transition-colors hover:bg-zinc-800/30">
-                        {/* Description & Code */}
-                        <td className="px-3 py-2">
-                          <div className="font-mono text-[11px] font-bold text-cyan-400">
+              <>
+                {/* MOBILE VIEW: Touch-friendly cards for phones */}
+                <div className="block sm:hidden space-y-3">
+                  {items.map((it, idx) => (
+                    <div
+                      key={it.id || idx}
+                      className="rounded-xl border border-zinc-800 bg-zinc-900/90 p-3.5 space-y-2.5 shadow-md"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <span className="flex h-5 w-5 items-center justify-center rounded bg-zinc-800 font-mono text-[10px] text-zinc-400 font-bold">
+                            {idx + 1}
+                          </span>
+                          <span className="rounded bg-zinc-800 px-2 py-0.5 font-mono text-xs font-bold text-cyan-400">
                             {it.code}
+                          </span>
+                          <span className="rounded bg-cyan-950/60 px-1.5 py-0.5 text-[10px] font-bold text-cyan-300 border border-cyan-500/30">
+                            {it.unit}
+                          </span>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveItem(it.id)}
+                          className="flex h-8 w-8 items-center justify-center rounded-lg text-zinc-400 hover:bg-rose-950/40 hover:text-rose-400 transition"
+                          title="Remover insumo"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+
+                      {/* Description Input */}
+                      <div>
+                        <label className="text-[10px] font-medium text-zinc-400 block mb-0.5">Descrição:</label>
+                        <input
+                          type="text"
+                          value={it.description}
+                          onChange={(e) => handleUpdateItem(it.id, 'description', e.target.value)}
+                          className="w-full rounded-lg border border-zinc-700 bg-zinc-950 px-2.5 py-1.5 text-xs text-zinc-100 focus:border-cyan-500 outline-none"
+                        />
+                      </div>
+
+                      {/* Quantity & Unit Cost */}
+                      <div className="grid grid-cols-2 gap-2 pt-1 border-t border-zinc-800/80">
+                        <div>
+                          <label className="text-[10px] font-medium text-zinc-400 block mb-0.5">
+                            Quantidade ({it.unit}):
+                          </label>
+                          <div className="flex items-center rounded-lg border border-zinc-700 bg-zinc-950">
+                            <button
+                              type="button"
+                              onClick={() => handleUpdateItem(it.id, 'quantity', Math.max(0.01, it.quantity - 1))}
+                              disabled={it.quantity <= 1}
+                              className="flex h-8 w-8 items-center justify-center font-bold text-zinc-300 hover:bg-zinc-800 disabled:opacity-30"
+                            >
+                              -
+                            </button>
+                            <input
+                              type="number"
+                              step="any"
+                              min="0.01"
+                              value={it.quantity}
+                              onChange={(e) => handleUpdateItem(it.id, 'quantity', parseFloat(e.target.value) || 0)}
+                              className="w-full bg-transparent text-center font-mono text-xs font-bold text-cyan-300 outline-none"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => handleUpdateItem(it.id, 'quantity', it.quantity + 1)}
+                              className="flex h-8 w-8 items-center justify-center font-bold text-zinc-300 hover:bg-zinc-800"
+                            >
+                              +
+                            </button>
                           </div>
-                          <input
-                            type="text"
-                            value={it.description}
-                            onChange={(e) => handleUpdateItem(it.id, 'description', e.target.value)}
-                            className="mt-0.5 w-full rounded border border-transparent bg-transparent px-1.5 py-0.5 text-xs text-zinc-200 hover:border-zinc-700 focus:border-cyan-500 focus:bg-zinc-800 focus:outline-none"
-                          />
-                        </td>
+                        </div>
 
-                        {/* Quantity */}
-                        <td className="px-3 py-2">
-                          <input
-                            type="number"
-                            step="any"
-                            min="0.01"
-                            value={it.quantity}
-                            onChange={(e) => handleUpdateItem(it.id, 'quantity', parseFloat(e.target.value) || 0)}
-                            className="w-full rounded border border-zinc-700 bg-zinc-800 px-2 py-1 text-center font-bold text-zinc-100 focus:border-cyan-500 focus:outline-none"
-                          />
-                        </td>
-
-                        {/* Unit */}
-                        <td className="px-2 py-2">
-                          <input
-                            type="text"
-                            value={it.unit}
-                            onChange={(e) => handleUpdateItem(it.id, 'unit', e.target.value.toUpperCase())}
-                            className="w-full rounded border border-zinc-700 bg-zinc-800 px-1.5 py-1 text-center font-mono text-zinc-300 focus:border-cyan-500 focus:outline-none"
-                          />
-                        </td>
-
-                        {/* Unit Cost */}
-                        <td className="px-3 py-2">
+                        <div>
+                          <label className="text-[10px] font-medium text-zinc-400 block mb-0.5">
+                            Custo Unit. ({settings.currencySymbol}):
+                          </label>
                           <input
                             type="number"
                             step="0.01"
                             min="0"
                             value={it.estimatedCost}
                             onChange={(e) => handleUpdateItem(it.id, 'estimatedCost', parseFloat(e.target.value) || 0)}
-                            className="w-full rounded border border-zinc-700 bg-zinc-800 px-2 py-1 text-right text-zinc-200 focus:border-cyan-500 focus:outline-none"
+                            className="w-full rounded-lg border border-zinc-700 bg-zinc-950 px-2.5 py-1.5 text-right font-mono text-xs text-zinc-100 focus:border-cyan-500 outline-none"
                           />
-                        </td>
+                        </div>
+                      </div>
 
-                        {/* Subtotal */}
-                        <td className="px-3 py-2 text-right font-bold text-emerald-400">
-                          {formatCurrency(it.totalEstimatedCost, settings.currencySymbol)}
-                        </td>
-
-                        {/* Application / Destination */}
-                        <td className="px-3 py-2">
+                      {/* Application / Destination & Subtotal */}
+                      <div className="flex items-center justify-between gap-2 pt-1 border-t border-zinc-800/80 text-xs">
+                        <div className="flex-1">
                           <input
                             type="text"
                             value={it.destinationMachine || ''}
                             onChange={(e) => handleUpdateItem(it.id, 'destinationMachine', e.target.value)}
-                            placeholder="Onde será usado..."
-                            className="w-full rounded border border-zinc-700/60 bg-zinc-800/80 px-2 py-1 text-xs text-zinc-300 placeholder-zinc-600 focus:border-cyan-500 focus:outline-none"
+                            placeholder="Aplicação / Destino..."
+                            className="w-full rounded-lg border border-zinc-800 bg-zinc-950 px-2 py-1 text-[11px] text-zinc-300 placeholder-zinc-500 outline-none focus:border-cyan-500"
                           />
-                        </td>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <span className="text-[10px] text-zinc-500 block">Subtotal:</span>
+                          <span className="font-mono font-bold text-emerald-400 text-xs">
+                            {formatCurrency(it.totalEstimatedCost, settings.currencySymbol)}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
 
-                        {/* Remove */}
-                        <td className="px-2 py-2 text-center">
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveItem(it.id)}
-                            className="rounded p-1 text-zinc-500 transition-colors hover:bg-rose-500/20 hover:text-rose-400"
-                            title="Remover item da solicitação"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </button>
-                        </td>
+                {/* DESKTOP VIEW: Multi-column table (hidden on mobile) */}
+                <div className="hidden sm:block overflow-x-auto rounded-lg border border-zinc-800">
+                  <table className="w-full text-left text-xs">
+                    <thead className="border-b border-zinc-800 bg-zinc-900/80 text-[11px] uppercase tracking-wider text-zinc-400">
+                      <tr>
+                        <th className="px-3 py-2.5">Código / Insumo</th>
+                        <th className="px-3 py-2.5 w-24 text-center">Qtd.</th>
+                        <th className="px-2 py-2.5 w-16 text-center">Unid.</th>
+                        <th className="px-3 py-2.5 w-28 text-right">Valor Est.</th>
+                        <th className="px-3 py-2.5 w-28 text-right">Subtotal</th>
+                        <th className="px-3 py-2.5">Aplicação / Destino</th>
+                        <th className="px-2 py-2.5 w-10 text-center"></th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody className="divide-y divide-zinc-800/60 bg-zinc-900/40">
+                      {items.map((it) => (
+                        <tr key={it.id} className="transition-colors hover:bg-zinc-800/30">
+                          {/* Description & Code */}
+                          <td className="px-3 py-2">
+                            <div className="font-mono text-[11px] font-bold text-cyan-400">
+                              {it.code}
+                            </div>
+                            <input
+                              type="text"
+                              value={it.description}
+                              onChange={(e) => handleUpdateItem(it.id, 'description', e.target.value)}
+                              className="mt-0.5 w-full rounded border border-transparent bg-transparent px-1.5 py-0.5 text-xs text-zinc-200 hover:border-zinc-700 focus:border-cyan-500 focus:bg-zinc-800 focus:outline-none"
+                            />
+                          </td>
+
+                          {/* Quantity */}
+                          <td className="px-3 py-2">
+                            <input
+                              type="number"
+                              step="any"
+                              min="0.01"
+                              value={it.quantity}
+                              onChange={(e) => handleUpdateItem(it.id, 'quantity', parseFloat(e.target.value) || 0)}
+                              className="w-full rounded border border-zinc-700 bg-zinc-800 px-2 py-1 text-center font-bold text-zinc-100 focus:border-cyan-500 focus:outline-none"
+                            />
+                          </td>
+
+                          {/* Unit */}
+                          <td className="px-2 py-2">
+                            <input
+                              type="text"
+                              value={it.unit}
+                              onChange={(e) => handleUpdateItem(it.id, 'unit', e.target.value.toUpperCase())}
+                              className="w-full rounded border border-zinc-700 bg-zinc-800 px-1.5 py-1 text-center font-mono text-zinc-300 focus:border-cyan-500 focus:outline-none"
+                            />
+                          </td>
+
+                          {/* Unit Cost */}
+                          <td className="px-3 py-2">
+                            <input
+                              type="number"
+                              step="0.01"
+                              min="0"
+                              value={it.estimatedCost}
+                              onChange={(e) => handleUpdateItem(it.id, 'estimatedCost', parseFloat(e.target.value) || 0)}
+                              className="w-full rounded border border-zinc-700 bg-zinc-800 px-2 py-1 text-right text-zinc-200 focus:border-cyan-500 focus:outline-none"
+                            />
+                          </td>
+
+                          {/* Subtotal */}
+                          <td className="px-3 py-2 text-right font-bold text-emerald-400">
+                            {formatCurrency(it.totalEstimatedCost, settings.currencySymbol)}
+                          </td>
+
+                          {/* Application / Destination */}
+                          <td className="px-3 py-2">
+                            <input
+                              type="text"
+                              value={it.destinationMachine || ''}
+                              onChange={(e) => handleUpdateItem(it.id, 'destinationMachine', e.target.value)}
+                              placeholder="Onde será usado..."
+                              className="w-full rounded border border-zinc-700/60 bg-zinc-800/80 px-2 py-1 text-xs text-zinc-300 placeholder-zinc-600 focus:border-cyan-500 focus:outline-none"
+                            />
+                          </td>
+
+                          {/* Remove */}
+                          <td className="px-2 py-2 text-center">
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveItem(it.id)}
+                              className="rounded p-1 text-zinc-500 transition-colors hover:bg-rose-500/20 hover:text-rose-400"
+                              title="Remover item da solicitação"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </>
             )}
 
             {/* Total Footer */}

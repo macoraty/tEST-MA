@@ -129,10 +129,10 @@ const ItemModalContent: React.FC<ItemModalContentProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-3 sm:p-4 backdrop-blur-sm animate-in fade-in duration-200">
       <div
         id="modal-catalog-item"
-        className="w-full max-w-lg rounded-2xl border border-zinc-800 bg-zinc-950 p-6 shadow-2xl transition-all sm:p-7"
+        className="w-full max-w-lg max-h-[92vh] overflow-y-auto rounded-2xl border border-zinc-800 bg-zinc-950 p-5 sm:p-7 shadow-2xl transition-all"
       >
         {/* Header */}
         <div className="flex items-start justify-between border-b border-zinc-800/80 pb-4">

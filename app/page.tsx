@@ -270,14 +270,14 @@ export default function Home() {
 
   return (
     <ErrorBoundary>
-      <div className="min-h-screen bg-zinc-950 pb-16 text-zinc-100 selection:bg-cyan-500 selection:text-zinc-950">
+      <div className="min-h-screen bg-zinc-950 pb-28 md:pb-16 text-zinc-100 selection:bg-cyan-500 selection:text-zinc-950">
         {/* Toast Notification Banner */}
         {toastMessage && (
-          <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3 rounded-2xl border border-emerald-500/40 bg-zinc-900/95 px-5 py-3 text-sm font-semibold text-emerald-300 shadow-2xl shadow-emerald-950/60 backdrop-blur-md animate-in slide-in-from-bottom duration-200">
-            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-400 text-xs font-black">
+          <div className="fixed bottom-20 md:bottom-6 right-4 sm:right-6 z-50 flex items-center gap-3 rounded-2xl border border-emerald-500/40 bg-zinc-900/95 px-4 py-3 text-xs sm:text-sm font-semibold text-emerald-300 shadow-2xl shadow-emerald-950/60 backdrop-blur-md animate-in slide-in-from-bottom duration-200 max-w-[90vw]">
+            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-400 text-xs font-black">
               ✓
             </span>
-            <span>{toastMessage}</span>
+            <span className="truncate">{toastMessage}</span>
           </div>
         )}
 
@@ -304,7 +304,7 @@ export default function Home() {
         />
 
         {/* Main Container */}
-        <main className="mx-auto max-w-7xl px-4 pt-6 sm:px-6 lg:px-8">
+        <main className="mx-auto max-w-7xl px-3 pt-4 sm:px-6 sm:pt-6 lg:px-8">
           {/* Render View based on state */}
           {activeEditingList ? (
             /* 1. LIST EDITOR (SEARCH & ADD ITEMS VIEW) */

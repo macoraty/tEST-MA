@@ -606,109 +606,138 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
       )}
 
       {/* Sub-Tabs Navigation */}
-      <div className="flex flex-wrap gap-2 border-b border-zinc-800 pb-3">
+      {/* Mobile Select Picker */}
+      <div className="block sm:hidden">
+        <label className="text-[11px] font-bold text-zinc-400 block mb-1.5 uppercase tracking-wider">
+          Seção de Configuração:
+        </label>
+        <select
+          value={activeSubTab}
+          onChange={(e) => setActiveSubTab(e.target.value as any)}
+          className="w-full rounded-xl border border-cyan-500/40 bg-zinc-900 px-3.5 py-2.5 text-xs font-bold text-cyan-300 outline-none focus:ring-1 focus:ring-cyan-500 shadow-md"
+        >
+          <option value="company">🏢 Identidade Visual & Logos</option>
+          <option value="templates">🎨 Templates PDF & Excel</option>
+          <option value="excel-import">📊 Importar Excel (Catálogo)</option>
+          <option value="codes">🏷️ Padronização de Códigos</option>
+          <option value="parameters">⚙️ Grupos & Unidades</option>
+          <option value="whatsapp">💬 Mensagem WhatsApp</option>
+          <option value="users">👥 Usuários & Permissões (Admin)</option>
+          <option value="backup">💾 Banco de Dados & Backup</option>
+        </select>
+      </div>
+
+      {/* Desktop Tabs Navigation */}
+      <div className="hidden sm:flex overflow-x-auto gap-1.5 sm:gap-2 border-b border-zinc-800 pb-3 no-scrollbar sm:flex-wrap">
         <button
           id="tab-btn-company"
           onClick={() => setActiveSubTab('company')}
-          className={`flex items-center gap-2 rounded-xl px-3.5 py-2 text-xs font-semibold transition ${
+          className={`shrink-0 flex items-center gap-2 rounded-xl px-3 sm:px-3.5 py-2 text-xs font-semibold transition ${
             activeSubTab === 'company'
               ? 'border border-cyan-500/30 bg-cyan-500/10 text-cyan-300 shadow-sm'
               : 'text-zinc-400 hover:bg-zinc-900 hover:text-zinc-200'
           }`}
         >
           <Building className="h-4 w-4" />
-          <span>Identidade Visual & Logos (Programa / Empresa)</span>
+          <span className="sm:hidden">Identidade</span>
+          <span className="hidden sm:inline">Identidade Visual & Logos</span>
         </button>
 
         <button
           id="tab-btn-templates"
           onClick={() => setActiveSubTab('templates')}
-          className={`flex items-center gap-2 rounded-xl px-3.5 py-2 text-xs font-semibold transition ${
+          className={`shrink-0 flex items-center gap-2 rounded-xl px-3 sm:px-3.5 py-2 text-xs font-semibold transition ${
             activeSubTab === 'templates'
               ? 'border border-cyan-500/30 bg-cyan-500/10 text-cyan-300 shadow-sm'
               : 'text-zinc-400 hover:bg-zinc-900 hover:text-zinc-200'
           }`}
         >
           <Palette className="h-4 w-4" />
-          <span>Templates PDF & Excel</span>
+          <span className="sm:hidden">Templates</span>
+          <span className="hidden sm:inline">Templates PDF & Excel</span>
         </button>
 
         <button
           id="tab-btn-excel-import"
           onClick={() => setActiveSubTab('excel-import')}
-          className={`flex items-center gap-2 rounded-xl px-3.5 py-2 text-xs font-semibold transition ${
+          className={`shrink-0 flex items-center gap-2 rounded-xl px-3 sm:px-3.5 py-2 text-xs font-semibold transition ${
             activeSubTab === 'excel-import'
               ? 'border border-emerald-500/40 bg-emerald-500/10 text-emerald-300 shadow-sm ring-1 ring-emerald-500/30'
               : 'text-zinc-400 hover:bg-zinc-900 hover:text-zinc-200'
           }`}
         >
           <FileSpreadsheet className="h-4 w-4 text-emerald-400" />
-          <span>Importar Excel (Catálogo)</span>
+          <span className="sm:hidden">Importar</span>
+          <span className="hidden sm:inline">Importar Excel (Catálogo)</span>
         </button>
 
         <button
           id="tab-btn-codes"
           onClick={() => setActiveSubTab('codes')}
-          className={`flex items-center gap-2 rounded-xl px-3.5 py-2 text-xs font-semibold transition ${
+          className={`shrink-0 flex items-center gap-2 rounded-xl px-3 sm:px-3.5 py-2 text-xs font-semibold transition ${
             activeSubTab === 'codes'
               ? 'border border-cyan-500/30 bg-cyan-500/10 text-cyan-300 shadow-sm'
               : 'text-zinc-400 hover:bg-zinc-900 hover:text-zinc-200'
           }`}
         >
           <Tag className="h-4 w-4" />
-          <span>Padronização de Códigos (5L + 4N)</span>
+          <span className="sm:hidden">Códigos</span>
+          <span className="hidden sm:inline">Padronização de Códigos (5L + 4N)</span>
         </button>
 
         <button
           id="tab-btn-parameters"
           onClick={() => setActiveSubTab('parameters')}
-          className={`flex items-center gap-2 rounded-xl px-3.5 py-2 text-xs font-semibold transition ${
+          className={`shrink-0 flex items-center gap-2 rounded-xl px-3 sm:px-3.5 py-2 text-xs font-semibold transition ${
             activeSubTab === 'parameters'
               ? 'border border-cyan-500/30 bg-cyan-500/10 text-cyan-300 shadow-sm'
               : 'text-zinc-400 hover:bg-zinc-900 hover:text-zinc-200'
           }`}
         >
           <Layers className="h-4 w-4" />
-          <span>Grupos & Unidades</span>
+          <span className="sm:hidden">Parâmetros</span>
+          <span className="hidden sm:inline">Grupos & Unidades</span>
         </button>
 
         <button
           id="tab-btn-whatsapp"
           onClick={() => setActiveSubTab('whatsapp')}
-          className={`flex items-center gap-2 rounded-xl px-3.5 py-2 text-xs font-semibold transition ${
+          className={`shrink-0 flex items-center gap-2 rounded-xl px-3 sm:px-3.5 py-2 text-xs font-semibold transition ${
             activeSubTab === 'whatsapp'
               ? 'border border-cyan-500/30 bg-cyan-500/10 text-cyan-300 shadow-sm'
               : 'text-zinc-400 hover:bg-zinc-900 hover:text-zinc-200'
           }`}
         >
           <MessageSquare className="h-4 w-4" />
-          <span>Template do WhatsApp</span>
+          <span>WhatsApp</span>
         </button>
 
         <button
           id="tab-btn-users"
           onClick={() => setActiveSubTab('users')}
-          className={`flex items-center gap-2 rounded-xl px-3.5 py-2 text-xs font-semibold transition ${
+          className={`shrink-0 flex items-center gap-2 rounded-xl px-3 sm:px-3.5 py-2 text-xs font-semibold transition ${
             activeSubTab === 'users'
               ? 'border border-cyan-500/30 bg-cyan-500/10 text-cyan-300 shadow-sm ring-1 ring-cyan-500/30'
               : 'text-zinc-400 hover:bg-zinc-900 hover:text-zinc-200'
           }`}
         >
           <Users className="h-4 w-4 text-cyan-400" />
-          <span>Usuários & Acesso (Admin)</span>
+          <span className="sm:hidden">Usuários</span>
+          <span className="hidden sm:inline">Usuários & Acesso (Admin)</span>
         </button>
 
         <button
           id="tab-btn-backup"
           onClick={() => setActiveSubTab('backup')}
-          className={`flex items-center gap-2 rounded-xl px-3.5 py-2 text-xs font-semibold transition ${
+          className={`shrink-0 flex items-center gap-2 rounded-xl px-3 sm:px-3.5 py-2 text-xs font-semibold transition ${
             activeSubTab === 'backup'
               ? 'border border-cyan-500/30 bg-cyan-500/10 text-cyan-300 shadow-sm'
               : 'text-zinc-400 hover:bg-zinc-900 hover:text-zinc-200'
           }`}
         >
           <Database className="h-4 w-4" />
-          <span>Banco de Dados & Backup</span>
+          <span className="sm:hidden">Backup</span>
+          <span className="hidden sm:inline">Banco de Dados & Backup</span>
         </button>
       </div>
 
