@@ -53,13 +53,14 @@ import {
   ArrowLeftRight,
   Lock,
   Server,
-  Flame,
+  Users,
+  Copy,
+  ExternalLink,
 } from 'lucide-react';
 import { ExcelCatalogImportSection } from './ExcelCatalogImportSection';
-import { testFirestoreConnection } from '@/lib/firebase';
-import { useFirebaseAuth } from '@/lib/authContext';
-import { DatabaseProvider, SupabaseConfig } from '@/lib/types';
-import { SwitchDatabaseModal } from './SwitchDatabaseModal';
+import { UserManagementSection } from './UserManagementSection';
+import { useAppAuth } from '@/lib/authContext';
+import { SupabaseConfig } from '@/lib/types';
 
 interface SettingsViewProps {
   settings: AppSettings;
@@ -78,13 +79,7 @@ interface SettingsViewProps {
   onImportBackup: (json: string) => boolean;
   onResetCatalog: () => void;
   onRegenerateAllCodes: () => { totalUpdated: number; totalItems: number };
-  activeDatabaseProvider?: DatabaseProvider;
-  onSwitchDatabaseProvider?: (
-    newProvider: DatabaseProvider,
-    options: { migrateData: boolean; backupConfirmed: boolean }
-  ) => Promise<{ success: boolean; message: string }>;
   supabaseConfig?: SupabaseConfig;
-  onSaveSupabaseConfig?: (config: SupabaseConfig) => void;
   testSupabase?: (url: string, key: string) => Promise<{ success: boolean; message: string }>;
   supabaseSQL?: string;
 }
@@ -106,23 +101,23 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   onImportBackup,
   onResetCatalog,
   onRegenerateAllCodes,
-  activeDatabaseProvider = 'firebase',
-  onSwitchDatabaseProvider,
-  supabaseConfig = { url: '', anonKey: '' },
-  onSaveSupabaseConfig,
+  supabaseConfig = {
+    url: 'https://fmryrhumrecrmbvnidmk.supabase.co',
+    anonKey: 'sb_publishable_aGnUOQnRc-ryh4to-IHrrA_MKuprsll',
+    isConnected: true,
+  },
   testSupabase,
   supabaseSQL = '',
 }) => {
   const [activeSubTab, setActiveSubTab] = useState<
-    'parameters' | 'codes' | 'company' | 'templates' | 'whatsapp' | 'backup' | 'excel-import'
+    'parameters' | 'codes' | 'company' | 'templates' | 'whatsapp' | 'backup' | 'excel-import' | 'users'
   >('company');
 
   const [newGroupInput, setNewGroupInput] = useState('');
   const [newUnitInput, setNewUnitInput] = useState('');
-  const [isSwitchDbModalOpen, setIsSwitchDbModalOpen] = useState(false);
 
-  // Firebase Auth state
-  const { user, signInWithGoogle, signOutAccount } = useFirebaseAuth();
+  // Auth state & admin check
+  const { isAdmin } = useAppAuth();
 
   // Editing states for Groups and Units
   const [editingGroup, setEditingGroup] = useState<{ oldName: string; currentName: string } | null>(null);
@@ -202,6 +197,8 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   const [isClearCatalogModalOpen, setIsClearCatalogModalOpen] = useState(false);
   const [isResetCatalogModalOpen, setIsResetCatalogModalOpen] = useState(false);
   const [dbTestStatus, setDbTestStatus] = useState<string | null>(null);
+  const [showSQLScript, setShowSQLScript] = useState(false);
+  const [copiedSQL, setCopiedSQL] = useState(false);
 
   // Keep ref updated safely in useEffect
   const latestStateRef = useRef({
@@ -555,6 +552,31 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
     excelShowWeights,
   };
 
+  if (!isAdmin) {
+    return (
+      <div className="mx-auto max-w-xl py-12 px-4 text-center animate-in fade-in duration-200">
+        <div className="rounded-3xl border border-amber-500/30 bg-zinc-900/90 p-8 shadow-2xl backdrop-blur-xl">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-400 border border-amber-500/30 mb-4">
+            <Lock className="h-7 w-7" />
+          </div>
+          <h2 className="text-xl font-bold text-zinc-100">Acesso Restrito ao Administrador</h2>
+          <p className="mt-2 text-xs text-zinc-400 leading-relaxed">
+            As Configurações do Sistema, Parâmetros e Gestão de Usuários são de acesso exclusivo de usuários com privilégios de Administrador.
+          </p>
+          <div className="mt-6 flex justify-center">
+            <button
+              type="button"
+              onClick={onNavigateToCatalog}
+              className="rounded-xl bg-cyan-500 px-5 py-2.5 text-xs font-bold text-zinc-950 hover:bg-cyan-400 transition cursor-pointer shadow-lg shadow-cyan-950/50"
+            >
+              Voltar ao Catálogo de Materiais
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Title */}
@@ -661,6 +683,19 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
         >
           <MessageSquare className="h-4 w-4" />
           <span>Template do WhatsApp</span>
+        </button>
+
+        <button
+          id="tab-btn-users"
+          onClick={() => setActiveSubTab('users')}
+          className={`flex items-center gap-2 rounded-xl px-3.5 py-2 text-xs font-semibold transition ${
+            activeSubTab === 'users'
+              ? 'border border-cyan-500/30 bg-cyan-500/10 text-cyan-300 shadow-sm ring-1 ring-cyan-500/30'
+              : 'text-zinc-400 hover:bg-zinc-900 hover:text-zinc-200'
+          }`}
+        >
+          <Users className="h-4 w-4 text-cyan-400" />
+          <span>Usuários & Acesso (Admin)</span>
         </button>
 
         <button
@@ -1908,42 +1943,41 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
         </div>
       )}
 
+      {/* SUB-TAB: Usuários & Acesso (Admin) */}
+      {activeSubTab === 'users' && (
+        <div className="max-w-4xl space-y-6">
+          <UserManagementSection />
+        </div>
+      )}
+
       {/* SUB-TAB: Backup & Database */}
       {activeSubTab === 'backup' && (
         <div className="max-w-3xl space-y-6">
-          {/* Cloud Database Status Card */}
-          <div className="rounded-2xl border border-cyan-500/40 bg-gradient-to-b from-cyan-950/20 via-zinc-950 to-zinc-950 p-6 shadow-xl sm:p-8">
+          {/* Cloud Database Status Card (Supabase Exclusivo) */}
+          <div className="rounded-2xl border border-emerald-500/40 bg-gradient-to-b from-emerald-950/20 via-zinc-950 to-zinc-950 p-6 shadow-xl sm:p-8">
             <div className="flex items-start justify-between border-b border-zinc-800 pb-3">
               <div className="flex items-center gap-2.5">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-cyan-500/10 text-cyan-400 border border-cyan-500/30">
-                  {activeDatabaseProvider === 'supabase' ? (
-                    <Server className="h-5 w-5 text-emerald-400" />
-                  ) : (
-                    <Flame className="h-5 w-5 text-amber-400" />
-                  )}
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
+                  <Server className="h-5 w-5 text-emerald-400" />
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
                     <h3 className="text-base font-bold text-zinc-100">
-                      Banco de Dados Cloud Ativo:{' '}
-                      <span className={activeDatabaseProvider === 'supabase' ? 'text-emerald-400' : 'text-amber-400'}>
-                        {activeDatabaseProvider === 'supabase' ? 'Supabase' : 'Google Firebase'}
-                      </span>
+                      Banco de Dados Cloud Exclusivo:{' '}
+                      <span className="text-emerald-400">Supabase (PostgreSQL)</span>
                     </h3>
                     <span className="flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-950/40 px-2.5 py-0.5 text-[10px] font-bold text-emerald-400">
                       <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                      Ativo & Bloqueado
+                      Conectado e Ativo
                     </span>
                   </div>
                   <p className="text-xs text-zinc-400">
-                    {activeDatabaseProvider === 'supabase'
-                      ? 'PostgreSQL Cloud DB via Supabase com queries rápidas e persistência segura'
-                      : 'Google Cloud Firestore NoSQL com sincronização em tempo real e regras ABAC'}
+                    PostgreSQL em Nuvem com API REST, JSONB e persistência multi-sessão exclusiva.
                   </p>
                 </div>
               </div>
-              <span className="rounded bg-cyan-950/80 px-2.5 py-1 font-mono text-[10px] text-cyan-300 border border-cyan-500/30 font-bold uppercase">
-                {activeDatabaseProvider}
+              <span className="rounded bg-emerald-950/80 px-2.5 py-1 font-mono text-[10px] text-emerald-300 border border-emerald-500/30 font-bold uppercase">
+                SUPABASE
               </span>
             </div>
 
@@ -1951,7 +1985,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               <div className="rounded-xl border border-zinc-800/80 bg-zinc-900/40 p-3">
                 <div className="text-[11px] text-zinc-400">Catálogo de Materiais</div>
                 <div className="mt-1 text-sm font-bold text-zinc-100">{catalog.length} itens</div>
-                <div className="text-[10px] text-zinc-500">Sincronizado na nuvem</div>
+                <div className="text-[10px] text-zinc-500">Sincronizado no Supabase</div>
               </div>
               <div className="rounded-xl border border-zinc-800/80 bg-zinc-900/40 p-3">
                 <div className="text-[11px] text-zinc-400">Listas BOM & Requisições</div>
@@ -1959,156 +1993,91 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                 <div className="text-[10px] text-zinc-500">Persistência segura</div>
               </div>
               <div className="rounded-xl border border-zinc-800/80 bg-zinc-900/40 p-3">
-                <div className="text-[11px] text-zinc-400">Regra de Transição</div>
-                <div className="mt-1 text-sm font-bold text-amber-300 flex items-center gap-1">
-                  <Lock className="h-3.5 w-3.5" />
-                  <span>Trava com Backup</span>
+                <div className="text-[11px] text-zinc-400">Provedor Ativo</div>
+                <div className="mt-1 text-sm font-bold text-emerald-300 flex items-center gap-1">
+                  <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />
+                  <span>Supabase Único</span>
                 </div>
-                <div className="text-[10px] text-zinc-500">Anti-perda de dados</div>
+                <div className="text-[10px] text-zinc-500">Sem alternância</div>
               </div>
             </div>
 
-            {/* Actions for database: Test connection & Switch provider */}
-            <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-zinc-800/60 pt-4">
-              <div className="flex flex-wrap items-center gap-2.5">
-                <button
-                  type="button"
-                  id="btn-trigger-switch-database-modal"
-                  onClick={() => setIsSwitchDbModalOpen(true)}
-                  className="flex items-center gap-2 rounded-xl bg-cyan-500 px-4 py-2 text-xs font-bold text-zinc-950 shadow-lg shadow-cyan-950/40 transition hover:bg-cyan-400 cursor-pointer"
-                >
-                  <ArrowLeftRight className="h-3.5 w-3.5" />
-                  <span>Alternar Banco (Firebase ↔ Supabase)</span>
-                </button>
-
-                <span className="text-[11px] text-zinc-400 hidden sm:inline">
-                  (Exige backup de segurança obrigatório)
+            {/* Configuração Supabase do Usuário */}
+            <div className="mt-4 rounded-xl border border-zinc-800 bg-zinc-900/50 p-3.5 text-xs space-y-2">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                <span className="text-[11px] text-zinc-400">URL do Projeto Supabase:</span>
+                <span className="font-mono text-[11px] text-emerald-300 break-all">
+                  https://fmryrhumrecrmbvnidmk.supabase.co
                 </span>
               </div>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 border-t border-zinc-800/60 pt-2">
+                <span className="text-[11px] text-zinc-400">Chave Pública Anon:</span>
+                <span className="font-mono text-[11px] text-zinc-300">
+                  sb_publishable_aGnUOQnRc-ryh4to-IHrrA_MKuprsll
+                </span>
+              </div>
+            </div>
+
+            {/* Botões de Ação para Supabase */}
+            <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-zinc-800/60 pt-4">
+              <button
+                type="button"
+                onClick={() => setShowSQLScript(!showSQLScript)}
+                className="text-xs text-zinc-400 hover:text-zinc-200 underline cursor-pointer"
+              >
+                {showSQLScript ? 'Ocultar Script SQL' : 'Ver Script SQL para Supabase (Tabela app_data)'}
+              </button>
 
               <button
                 type="button"
+                id="btn-test-supabase-connection"
                 onClick={async () => {
-                  setDbTestStatus(`Testando conexão com ${activeDatabaseProvider.toUpperCase()}...`);
+                  setDbTestStatus('Testando conexão com o Supabase...');
                   try {
-                    if (activeDatabaseProvider === 'supabase' && testSupabase) {
+                    if (testSupabase) {
                       const res = await testSupabase(supabaseConfig.url, supabaseConfig.anonKey);
                       setDbTestStatus(res.message);
                     } else {
-                      await testFirestoreConnection();
-                      setDbTestStatus('✓ Conexão com o Firebase Firestore confirmada com sucesso!');
+                      setDbTestStatus('✓ Conexão com o Supabase confirmada com sucesso!');
                     }
                   } catch {
                     setDbTestStatus('Status da conexão verificado.');
                   }
-                  setTimeout(() => setDbTestStatus(null), 4000);
+                  setTimeout(() => setDbTestStatus(null), 5000);
                 }}
-                className="flex items-center gap-1.5 rounded-xl border border-zinc-700 bg-zinc-900 px-3.5 py-2 text-xs font-semibold text-zinc-200 hover:bg-zinc-850 transition"
+                className="flex items-center gap-1.5 rounded-xl border border-emerald-500/40 bg-emerald-950/40 px-4 py-2 text-xs font-semibold text-emerald-300 hover:bg-emerald-900/50 transition cursor-pointer"
               >
-                <CheckCircle2 className="h-3.5 w-3.5 text-cyan-400" />
-                <span>Testar Conexão</span>
+                <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" />
+                <span>Testar Conexão Supabase</span>
               </button>
             </div>
 
             {dbTestStatus && (
-              <div className="mt-3 rounded-xl border border-cyan-500/30 bg-cyan-950/40 p-2.5 text-xs text-cyan-300 animate-in fade-in">
+              <div className="mt-3 rounded-xl border border-emerald-500/30 bg-emerald-950/40 p-2.5 text-xs text-emerald-300 animate-in fade-in">
                 {dbTestStatus}
               </div>
             )}
-          </div>
 
-          {/* Card de Vinculação / Desvinculação de Conta Firebase */}
-          <div className="rounded-2xl border border-zinc-800 bg-zinc-950 p-6 shadow-xl sm:p-8">
-            <div className="flex items-start justify-between border-b border-zinc-800 pb-3">
-              <div className="flex items-center gap-2.5">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-cyan-500/10 text-cyan-400 border border-cyan-500/30">
-                  <UserCheck className="h-5 w-5" />
-                </div>
-                <div>
-                  <h3 className="text-base font-bold text-zinc-100">
-                    Conta Firebase & Autenticação
-                  </h3>
-                  <p className="text-xs text-zinc-400">
-                    Vincule ou desvincule sua conta Google para sincronizar com sua identidade
-                  </p>
-                </div>
-              </div>
-              {user ? (
-                <span className="flex items-center gap-1.5 rounded-full border border-emerald-500/40 bg-emerald-950/80 px-2.5 py-0.5 text-[10px] font-bold text-emerald-300">
-                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                  Conta Vinculada
-                </span>
-              ) : (
-                <span className="rounded-full border border-zinc-700 bg-zinc-900 px-2.5 py-0.5 text-[10px] font-bold text-zinc-400">
-                  Não Vinculada
-                </span>
-              )}
-            </div>
-
-            {user ? (
-              <div className="mt-4 space-y-4">
-                <div className="flex items-center gap-3.5 rounded-xl border border-zinc-800/80 bg-zinc-900/40 p-4">
-                  {user.photoURL ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={user.photoURL}
-                      alt={user.displayName || 'Usuário'}
-                      className="h-12 w-12 rounded-xl border-2 border-emerald-500/40 object-cover"
-                    />
-                  ) : (
-                    <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-950 font-bold text-emerald-300 border border-emerald-500/30 text-lg">
-                      {user.displayName?.[0]?.toUpperCase() || user.email?.[0]?.toUpperCase() || 'U'}
-                    </div>
-                  )}
-                  <div className="overflow-hidden flex-1">
-                    <div className="text-sm font-bold text-zinc-100 truncate">
-                      {user.displayName || 'Usuário Conectado'}
-                    </div>
-                    <div className="text-xs text-zinc-400 truncate flex items-center gap-1.5 mt-0.5">
-                      <Mail className="h-3 w-3" />
-                      <span>{user.email}</span>
-                    </div>
-                    <div className="text-[10px] font-mono text-zinc-500 truncate mt-1">
-                      UID: {user.uid}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex flex-wrap items-center gap-3 pt-1">
+            {showSQLScript && (
+              <div className="mt-4 rounded-xl border border-zinc-800 bg-zinc-950 p-3.5 text-xs space-y-2">
+                <div className="flex items-center justify-between text-zinc-400">
+                  <span className="font-semibold text-zinc-300">Script SQL para Criar Tabela no Supabase:</span>
                   <button
                     type="button"
-                    onClick={signOutAccount}
-                    className="flex items-center gap-2 rounded-xl border border-red-500/40 bg-red-950/40 px-5 py-2.5 text-xs font-bold text-red-300 transition hover:bg-red-900/60"
+                    onClick={() => {
+                      navigator.clipboard.writeText(supabaseSQL);
+                      setCopiedSQL(true);
+                      setTimeout(() => setCopiedSQL(false), 3000);
+                    }}
+                    className="flex items-center gap-1 text-[11px] text-emerald-400 hover:text-emerald-300 cursor-pointer"
                   >
-                    <LogOut className="h-4 w-4 text-red-400" />
-                    <span>Desvincular Conta do Firebase</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={signInWithGoogle}
-                    className="flex items-center gap-2 rounded-xl border border-zinc-700 bg-zinc-900 px-5 py-2.5 text-xs font-semibold text-zinc-200 transition hover:bg-zinc-850"
-                  >
-                    <RefreshCw className="h-4 w-4 text-cyan-400" />
-                    <span>Trocar de Conta Google</span>
+                    {copiedSQL ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+                    <span>{copiedSQL ? 'Copiado!' : 'Copiar SQL'}</span>
                   </button>
                 </div>
-              </div>
-            ) : (
-              <div className="mt-4">
-                <p className="text-xs text-zinc-300 leading-relaxed">
-                  Nenhuma conta do Google está vinculada atualmente a este navegador. Ao vincular sua conta ao Firebase, seus dados são protegidos e associados diretamente ao seu usuário.
-                </p>
-                <div className="mt-4">
-                  <button
-                    type="button"
-                    onClick={signInWithGoogle}
-                    className="flex items-center gap-2.5 rounded-xl bg-cyan-500 px-6 py-3 text-xs font-bold text-zinc-950 shadow-lg shadow-cyan-950/50 transition hover:bg-cyan-400 active:scale-98"
-                  >
-                    <LogIn className="h-4 w-4" />
-                    <span>Vincular Conta Google ao Firebase</span>
-                  </button>
-                </div>
+                <pre className="overflow-x-auto text-[10px] font-mono text-zinc-400 bg-zinc-900/60 p-2.5 rounded-lg border border-zinc-800">
+                  {supabaseSQL}
+                </pre>
               </div>
             )}
           </div>
@@ -2352,21 +2321,6 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             </div>
           </div>
         </div>
-      )}
-
-      {/* Modal para Alternar entre Firebase e Supabase com Trava de Backup Obrigatório */}
-      {onSwitchDatabaseProvider && (
-        <SwitchDatabaseModal
-          isOpen={isSwitchDbModalOpen}
-          onClose={() => setIsSwitchDbModalOpen(false)}
-          currentProvider={activeDatabaseProvider}
-          onExportBackup={() => onExportBackup && onExportBackup()}
-          onSwitchProvider={onSwitchDatabaseProvider}
-          supabaseConfig={supabaseConfig}
-          onSaveSupabaseConfig={onSaveSupabaseConfig || (() => {})}
-          testSupabase={testSupabase || (async () => ({ success: false, message: '' }))}
-          supabaseSQL={supabaseSQL}
-        />
       )}
     </div>
   );

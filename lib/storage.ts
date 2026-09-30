@@ -446,16 +446,10 @@ function initFirestoreSync() {
 }
 
 let isSupabaseSyncRunning = false;
-let cachedActiveProvider: DatabaseProvider = 'firebase';
+let cachedActiveProvider: DatabaseProvider = 'supabase';
 
 export function getActiveDatabaseProviderSnapshot(): DatabaseProvider {
-  if (typeof window === 'undefined') return 'firebase';
-  const saved = localStorage.getItem(STORAGE_KEYS.ACTIVE_PROVIDER);
-  if (saved === 'supabase' || saved === 'firebase') {
-    cachedActiveProvider = saved;
-    return saved;
-  }
-  return 'firebase';
+  return 'supabase';
 }
 
 export function getLastBackupTimestampSnapshot(): number {
@@ -549,12 +543,7 @@ async function initSupabaseSync() {
 }
 
 function initActiveDatabaseSync() {
-  const provider = getActiveDatabaseProviderSnapshot();
-  if (provider === 'firebase') {
-    initFirestoreSync();
-  } else if (provider === 'supabase') {
-    initSupabaseSync();
-  }
+  initSupabaseSync();
 }
 
 function subscribe(callback: () => void) {
@@ -1416,7 +1405,6 @@ export function useIndustrialStorage() {
     testSupabaseConnection,
     SUPABASE_SETUP_SQL,
     isCloudConnected: true,
-    cloudDatabaseName:
-      activeDatabaseProvider === 'supabase' ? 'Supabase Cloud DB' : 'Google Cloud Firestore',
+    cloudDatabaseName: 'Supabase Cloud DB (PostgreSQL)',
   };
 }

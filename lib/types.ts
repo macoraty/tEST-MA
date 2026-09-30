@@ -48,6 +48,19 @@ export type PDFThemeColor = 'navy' | 'cyan' | 'emerald' | 'slate' | 'crimson';
 
 export type DatabaseProvider = 'firebase' | 'supabase';
 
+export type UserRole = 'admin' | 'operador';
+
+export interface AppUser {
+  id: string;
+  username: string;
+  name: string;
+  email?: string;
+  role: UserRole;
+  password?: string;
+  avatar?: string;
+  createdAt?: string;
+}
+
 export interface SupabaseConfig {
   url: string;
   anonKey: string;
@@ -73,6 +86,9 @@ export interface AppSettings {
   databaseProvider?: DatabaseProvider;
   supabaseConfig?: SupabaseConfig;
   lastBackupDate?: string;
+
+  // Access Control / Users
+  users?: AppUser[];
 
   // PDF Template Customization
   pdfTemplate?: PDFTemplateType;

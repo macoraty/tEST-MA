@@ -4,9 +4,9 @@ import { CatalogItem, MaterialList, SupplyRequisition, AppSettings, SupabaseConf
 const SUPABASE_STORAGE_KEY = 'industrial_supabase_config_v1';
 
 export const DEFAULT_SUPABASE_CONFIG: SupabaseConfig = {
-  url: '',
-  anonKey: '',
-  isConnected: false,
+  url: 'https://fmryrhumrecrmbvnidmk.supabase.co',
+  anonKey: 'sb_publishable_aGnUOQnRc-ryh4to-IHrrA_MKuprsll',
+  isConnected: true,
 };
 
 let supabaseClientInstance: SupabaseClient | null = null;
@@ -18,7 +18,7 @@ export function getSavedSupabaseConfig(): SupabaseConfig {
     const saved = localStorage.getItem(SUPABASE_STORAGE_KEY);
     if (saved) {
       const parsed = JSON.parse(saved);
-      if (parsed && typeof parsed.url === 'string') {
+      if (parsed && typeof parsed.url === 'string' && parsed.url.trim().length > 0) {
         return parsed;
       }
     }
@@ -135,7 +135,7 @@ ALTER PUBLICATION supabase_realtime ADD TABLE public.app_data;
  * Sync operations for Supabase
  */
 export async function syncDataToSupabase(
-  key: 'catalog' | 'lists' | 'requisitions' | 'settings',
+  key: 'catalog' | 'lists' | 'requisitions' | 'settings' | 'users',
   data: unknown
 ): Promise<boolean> {
   const client = getSupabaseClient();
@@ -163,7 +163,7 @@ export async function syncDataToSupabase(
 }
 
 export async function loadDataFromSupabase(
-  key: 'catalog' | 'lists' | 'requisitions' | 'settings'
+  key: 'catalog' | 'lists' | 'requisitions' | 'settings' | 'users'
 ): Promise<unknown | null> {
   const client = getSupabaseClient();
   if (!client) return null;

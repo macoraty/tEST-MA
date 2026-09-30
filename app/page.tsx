@@ -16,8 +16,12 @@ import { ItemModal } from '@/components/ItemModal';
 import { WhatsAppModal } from '@/components/WhatsAppModal';
 import { ListPreviewModal } from '@/components/ListPreviewModal';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { LoginView } from '@/components/LoginView';
+import { useAppAuth } from '@/lib/authContext';
 
 export default function Home() {
+  const { currentUser, isLoading: isAuthLoading } = useAppAuth();
+
   const {
     lists,
     catalog,
@@ -49,10 +53,7 @@ export default function Home() {
     exportBackupJSON,
     importBackupJSON,
     syncStatus,
-    activeDatabaseProvider,
-    switchDatabaseProvider,
     getSavedSupabaseConfig,
-    saveSupabaseConfig,
     testSupabaseConnection,
     SUPABASE_SETUP_SQL,
   } = useIndustrialStorage();
@@ -262,6 +263,11 @@ export default function Home() {
 
   const pendingReqsCount = requisitions.filter((r) => r.status === 'Pendente').length;
 
+  // Se não estiver autenticado, exibe a tela de login com senha
+  if (!isAuthLoading && !currentUser) {
+    return <LoginView settings={settings} />;
+  }
+
   return (
     <ErrorBoundary>
       <div className="min-h-screen bg-zinc-950 pb-16 text-zinc-100 selection:bg-cyan-500 selection:text-zinc-950">
@@ -295,12 +301,6 @@ export default function Home() {
           pendingRequisitionsCount={pendingReqsCount}
           settings={settings}
           syncStatus={syncStatus}
-          activeDatabaseProvider={activeDatabaseProvider}
-          onSwitchDatabaseProvider={switchDatabaseProvider}
-          supabaseConfig={getSavedSupabaseConfig()}
-          onSaveSupabaseConfig={saveSupabaseConfig}
-          testSupabase={testSupabaseConnection}
-          supabaseSQL={SUPABASE_SETUP_SQL}
         />
 
         {/* Main Container */}
@@ -390,10 +390,7 @@ export default function Home() {
               onImportBackup={importBackupJSON}
               onResetCatalog={resetCatalogToDefault}
               onRegenerateAllCodes={regenerateAllCodes}
-              activeDatabaseProvider={activeDatabaseProvider}
-              onSwitchDatabaseProvider={switchDatabaseProvider}
               supabaseConfig={getSavedSupabaseConfig()}
-              onSaveSupabaseConfig={saveSupabaseConfig}
               testSupabase={testSupabaseConnection}
               supabaseSQL={SUPABASE_SETUP_SQL}
             />
