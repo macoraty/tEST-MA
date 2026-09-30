@@ -196,6 +196,16 @@ export default function Home() {
     setIsRequisitionPreviewOpen(true);
   };
 
+  const handleDeleteRequisition = (id: string) => {
+    deleteRequisition(id);
+    showToast('Solicitação de insumos excluída com sucesso!');
+  };
+
+  const handleDeleteList = (id: string) => {
+    deleteList(id);
+    showToast('Lista de materiais excluída com sucesso!');
+  };
+
   const handleConvertRequisitionToBOM = (reqId: string) => {
     const createdBOM = convertRequisitionToBOM(reqId);
     if (createdBOM) {
@@ -338,7 +348,7 @@ export default function Home() {
               }}
               onEditList={handleEditList}
               onDuplicateList={duplicateList}
-              onDeleteList={deleteList}
+              onDeleteList={handleDeleteList}
               onOpenWhatsApp={handleOpenWhatsApp}
               onGenerateRequisition={(list) => {
                 handleOpenNewRequisitionModal(list.id);
@@ -353,7 +363,7 @@ export default function Home() {
               onOpenNewRequisitionModal={handleOpenNewRequisitionModal}
               onEditRequisition={handleEditRequisition}
               onPreviewRequisition={handlePreviewRequisition}
-              onDeleteRequisition={deleteRequisition}
+              onDeleteRequisition={handleDeleteRequisition}
               onUpdateStatus={updateRequisitionStatus}
               onConvertToBOM={handleConvertRequisitionToBOM}
             />

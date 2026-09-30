@@ -264,6 +264,109 @@ function notify() {
   listeners.forEach((listener) => listener());
 }
 
+// Persistent tombstone keys to guarantee deleted items never return from delayed sync or stale snapshots
+const DELETED_KEYS = {
+  REQUISITIONS: 'industrial_deleted_requisitions_v1',
+  LISTS: 'industrial_deleted_lists_v1',
+  CATALOG: 'industrial_deleted_catalog_v1',
+};
+
+export function getDeletedRequisitionIds(): Set<string> {
+  if (typeof window === 'undefined') return new Set();
+  try {
+    const raw = localStorage.getItem(DELETED_KEYS.REQUISITIONS);
+    if (raw) {
+      const arr = JSON.parse(raw);
+      if (Array.isArray(arr)) return new Set(arr);
+    }
+  } catch {}
+  return new Set();
+}
+
+export function addDeletedRequisitionId(id: string) {
+  if (typeof window === 'undefined' || !id) return;
+  try {
+    const s = getDeletedRequisitionIds();
+    s.add(id);
+    localStorage.setItem(DELETED_KEYS.REQUISITIONS, JSON.stringify(Array.from(s)));
+  } catch {}
+}
+
+export function removeDeletedRequisitionId(id: string) {
+  if (typeof window === 'undefined' || !id) return;
+  try {
+    const s = getDeletedRequisitionIds();
+    if (s.has(id)) {
+      s.delete(id);
+      localStorage.setItem(DELETED_KEYS.REQUISITIONS, JSON.stringify(Array.from(s)));
+    }
+  } catch {}
+}
+
+export function getDeletedListIds(): Set<string> {
+  if (typeof window === 'undefined') return new Set();
+  try {
+    const raw = localStorage.getItem(DELETED_KEYS.LISTS);
+    if (raw) {
+      const arr = JSON.parse(raw);
+      if (Array.isArray(arr)) return new Set(arr);
+    }
+  } catch {}
+  return new Set();
+}
+
+export function addDeletedListId(id: string) {
+  if (typeof window === 'undefined' || !id) return;
+  try {
+    const s = getDeletedListIds();
+    s.add(id);
+    localStorage.setItem(DELETED_KEYS.LISTS, JSON.stringify(Array.from(s)));
+  } catch {}
+}
+
+export function removeDeletedListId(id: string) {
+  if (typeof window === 'undefined' || !id) return;
+  try {
+    const s = getDeletedListIds();
+    if (s.has(id)) {
+      s.delete(id);
+      localStorage.setItem(DELETED_KEYS.LISTS, JSON.stringify(Array.from(s)));
+    }
+  } catch {}
+}
+
+export function getDeletedCatalogIds(): Set<string> {
+  if (typeof window === 'undefined') return new Set();
+  try {
+    const raw = localStorage.getItem(DELETED_KEYS.CATALOG);
+    if (raw) {
+      const arr = JSON.parse(raw);
+      if (Array.isArray(arr)) return new Set(arr);
+    }
+  } catch {}
+  return new Set();
+}
+
+export function addDeletedCatalogId(id: string) {
+  if (typeof window === 'undefined' || !id) return;
+  try {
+    const s = getDeletedCatalogIds();
+    s.add(id);
+    localStorage.setItem(DELETED_KEYS.CATALOG, JSON.stringify(Array.from(s)));
+  } catch {}
+}
+
+export function removeDeletedCatalogId(id: string) {
+  if (typeof window === 'undefined' || !id) return;
+  try {
+    const s = getDeletedCatalogIds();
+    if (s.has(id)) {
+      s.delete(id);
+      localStorage.setItem(DELETED_KEYS.CATALOG, JSON.stringify(Array.from(s)));
+    }
+  } catch {}
+}
+
 async function seedCatalogToFirestore(items: CatalogItem[]) {
   if (!items || items.length === 0) return;
   try {
@@ -322,21 +425,41 @@ function initFirestoreSync() {
     onSnapshot(
       catalogCol,
       (snapshot) => {
+        const deletedIds = getDeletedCatalogIds();
         if (!snapshot.empty) {
           const items: CatalogItem[] = [];
           snapshot.forEach((d) => {
+            if (deletedIds.has(d.id)) {
+              deleteDoc(d.ref).catch(() => {});
+              return;
+            }
             items.push(sanitizeCatalogItem({ ...d.data(), id: d.id }));
           });
-          cachedCatalog = items;
+          const cleanItems = items.filter((it) => !deletedIds.has(it.id));
+          cachedCatalog = cleanItems;
           try {
-            localStorage.setItem(STORAGE_KEYS.CATALOG, JSON.stringify(items));
+            localStorage.setItem(STORAGE_KEYS.CATALOG, JSON.stringify(cleanItems));
+            localStorage.setItem('industrial_catalog_seeded_v1', 'true');
           } catch {}
           cloudSyncStatus = 'synced';
           notify();
         } else {
-          const localCatalog = getCatalogSnapshot();
-          if (localCatalog && localCatalog.length > 0) {
-            seedCatalogToFirestore(localCatalog);
+          const alreadySeeded = typeof window !== 'undefined' && localStorage.getItem('industrial_catalog_seeded_v1') === 'true';
+          if (!alreadySeeded) {
+            const localCatalog = getCatalogSnapshot().filter((it) => !deletedIds.has(it.id));
+            if (localCatalog && localCatalog.length > 0) {
+              seedCatalogToFirestore(localCatalog);
+              try {
+                localStorage.setItem('industrial_catalog_seeded_v1', 'true');
+              } catch {}
+            }
+          } else {
+            cachedCatalog = [];
+            try {
+              localStorage.setItem(STORAGE_KEYS.CATALOG, JSON.stringify([]));
+            } catch {}
+            cloudSyncStatus = 'synced';
+            notify();
           }
         }
       },
@@ -356,21 +479,41 @@ function initFirestoreSync() {
     onSnapshot(
       listsCol,
       (snapshot) => {
+        const deletedIds = getDeletedListIds();
         if (!snapshot.empty) {
           const loadedLists: MaterialList[] = [];
           snapshot.forEach((d) => {
+            if (deletedIds.has(d.id)) {
+              deleteDoc(d.ref).catch(() => {});
+              return;
+            }
             loadedLists.push(sanitizeMaterialList({ ...d.data(), id: d.id }));
           });
-          cachedLists = loadedLists;
+          const cleanLists = loadedLists.filter((l) => !deletedIds.has(l.id));
+          cachedLists = cleanLists;
           try {
-            localStorage.setItem(STORAGE_KEYS.LISTS, JSON.stringify(loadedLists));
+            localStorage.setItem(STORAGE_KEYS.LISTS, JSON.stringify(cleanLists));
+            localStorage.setItem('industrial_lists_seeded_v1', 'true');
           } catch {}
           cloudSyncStatus = 'synced';
           notify();
         } else {
-          const localLists = getListsSnapshot();
-          if (localLists && localLists.length > 0) {
-            seedListsToFirestore(localLists);
+          const alreadySeeded = typeof window !== 'undefined' && localStorage.getItem('industrial_lists_seeded_v1') === 'true';
+          if (!alreadySeeded) {
+            const localLists = getListsSnapshot().filter((l) => !deletedIds.has(l.id));
+            if (localLists && localLists.length > 0) {
+              seedListsToFirestore(localLists);
+              try {
+                localStorage.setItem('industrial_lists_seeded_v1', 'true');
+              } catch {}
+            }
+          } else {
+            cachedLists = [];
+            try {
+              localStorage.setItem(STORAGE_KEYS.LISTS, JSON.stringify([]));
+            } catch {}
+            cloudSyncStatus = 'synced';
+            notify();
           }
         }
       },
@@ -388,21 +531,43 @@ function initFirestoreSync() {
     onSnapshot(
       reqsCol,
       (snapshot) => {
+        const deletedIds = getDeletedRequisitionIds();
         if (!snapshot.empty) {
           const loadedReqs: SupplyRequisition[] = [];
           snapshot.forEach((d) => {
+            if (deletedIds.has(d.id)) {
+              // Purge lingering document from Firestore
+              deleteDoc(d.ref).catch(() => {});
+              return;
+            }
             loadedReqs.push(sanitizeRequisition({ ...d.data(), id: d.id }));
           });
-          cachedRequisitions = loadedReqs;
+          const cleanReqs = loadedReqs.filter((r) => !deletedIds.has(r.id));
+          cachedRequisitions = cleanReqs;
           try {
-            localStorage.setItem(STORAGE_KEYS.REQUISITIONS, JSON.stringify(loadedReqs));
+            localStorage.setItem(STORAGE_KEYS.REQUISITIONS, JSON.stringify(cleanReqs));
+            localStorage.setItem('industrial_requisitions_seeded_v1', 'true');
           } catch {}
           cloudSyncStatus = 'synced';
           notify();
         } else {
-          const localReqs = getRequisitionsSnapshot();
-          if (localReqs && localReqs.length > 0) {
-            seedRequisitionsToFirestore(localReqs);
+          const alreadySeeded = typeof window !== 'undefined' && localStorage.getItem('industrial_requisitions_seeded_v1') === 'true';
+          if (!alreadySeeded) {
+            const localReqs = getRequisitionsSnapshot().filter((r) => !deletedIds.has(r.id));
+            if (localReqs && localReqs.length > 0) {
+              seedRequisitionsToFirestore(localReqs);
+              try {
+                localStorage.setItem('industrial_requisitions_seeded_v1', 'true');
+              } catch {}
+            }
+          } else {
+            // Requisitions were intentionally deleted or emptied
+            cachedRequisitions = [];
+            try {
+              localStorage.setItem(STORAGE_KEYS.REQUISITIONS, JSON.stringify([]));
+            } catch {}
+            cloudSyncStatus = 'synced';
+            notify();
           }
         }
       },
@@ -446,10 +611,17 @@ function initFirestoreSync() {
 }
 
 let isSupabaseSyncRunning = false;
-let cachedActiveProvider: DatabaseProvider = 'supabase';
+let hasInitActiveDatabase = false;
 
 export function getActiveDatabaseProviderSnapshot(): DatabaseProvider {
-  return 'supabase';
+  if (typeof window === 'undefined') return 'firebase';
+  try {
+    const saved = localStorage.getItem(STORAGE_KEYS.ACTIVE_PROVIDER) as DatabaseProvider;
+    if (saved === 'firebase' || saved === 'supabase') {
+      return saved;
+    }
+  } catch {}
+  return 'firebase';
 }
 
 export function getLastBackupTimestampSnapshot(): number {
@@ -506,11 +678,15 @@ async function initSupabaseSync() {
 
     // 3. Requisitions
     const remoteReqs = (await loadDataFromSupabase('requisitions')) as SupplyRequisition[] | null;
-    if (remoteReqs && Array.isArray(remoteReqs) && remoteReqs.length > 0) {
-      const sanitized = remoteReqs.map((r, idx) => sanitizeRequisition(r, idx));
+    const deletedReqIds = getDeletedRequisitionIds();
+    if (remoteReqs && Array.isArray(remoteReqs)) {
+      const sanitized = remoteReqs
+        .map((r, idx) => sanitizeRequisition(r, idx))
+        .filter((r) => !deletedReqIds.has(r.id));
       cachedRequisitions = sanitized;
       try {
         localStorage.setItem(STORAGE_KEYS.REQUISITIONS, JSON.stringify(sanitized));
+        localStorage.setItem('industrial_requisitions_seeded_v1', 'true');
       } catch {}
     } else {
       const localReqs = getRequisitionsSnapshot();
@@ -543,7 +719,15 @@ async function initSupabaseSync() {
 }
 
 function initActiveDatabaseSync() {
-  initSupabaseSync();
+  if (typeof window === 'undefined' || hasInitActiveDatabase) return;
+  hasInitActiveDatabase = true;
+
+  const prov = getActiveDatabaseProviderSnapshot();
+  if (prov === 'firebase') {
+    initFirestoreSync();
+  } else {
+    initSupabaseSync();
+  }
 }
 
 function subscribe(callback: () => void) {
@@ -569,17 +753,30 @@ function subscribe(callback: () => void) {
 function getCatalogSnapshot(): CatalogItem[] {
   if (cachedCatalog) return cachedCatalog;
   if (typeof window === 'undefined') return STATIC_CATALOG;
+  const deletedIds = getDeletedCatalogIds();
   try {
     const saved = localStorage.getItem(STORAGE_KEYS.CATALOG);
     if (saved !== null) {
       const parsed = JSON.parse(saved);
       if (Array.isArray(parsed)) {
-        const sanitized = parsed.map((it, idx) => sanitizeCatalogItem(it, idx));
+        const sanitized = parsed
+          .map((it, idx) => sanitizeCatalogItem(it, idx))
+          .filter((it) => !deletedIds.has(it.id));
         cachedCatalog = sanitized;
         return sanitized;
       }
     }
-    localStorage.setItem(STORAGE_KEYS.CATALOG, JSON.stringify(STATIC_CATALOG));
+    const alreadySeeded = localStorage.getItem('industrial_catalog_seeded_v1') === 'true';
+    if (!alreadySeeded) {
+      const initial = STATIC_CATALOG.filter((it) => !deletedIds.has(it.id));
+      localStorage.setItem(STORAGE_KEYS.CATALOG, JSON.stringify(initial));
+      localStorage.setItem('industrial_catalog_seeded_v1', 'true');
+      cachedCatalog = initial;
+      return initial;
+    } else {
+      cachedCatalog = [];
+      return cachedCatalog;
+    }
   } catch (e) {
     console.error('Error reading catalog:', e);
   }
@@ -590,17 +787,30 @@ function getCatalogSnapshot(): CatalogItem[] {
 function getListsSnapshot(): MaterialList[] {
   if (cachedLists) return cachedLists;
   if (typeof window === 'undefined') return STATIC_LISTS;
+  const deletedIds = getDeletedListIds();
   try {
     const saved = localStorage.getItem(STORAGE_KEYS.LISTS);
     if (saved !== null) {
       const parsed = JSON.parse(saved);
       if (Array.isArray(parsed)) {
-        const sanitized = parsed.map((l, idx) => sanitizeMaterialList(l, idx));
+        const sanitized = parsed
+          .map((l, idx) => sanitizeMaterialList(l, idx))
+          .filter((l) => !deletedIds.has(l.id));
         cachedLists = sanitized;
         return sanitized;
       }
     }
-    localStorage.setItem(STORAGE_KEYS.LISTS, JSON.stringify(STATIC_LISTS));
+    const alreadySeeded = localStorage.getItem('industrial_lists_seeded_v1') === 'true';
+    if (!alreadySeeded) {
+      const initial = STATIC_LISTS.filter((l) => !deletedIds.has(l.id));
+      localStorage.setItem(STORAGE_KEYS.LISTS, JSON.stringify(initial));
+      localStorage.setItem('industrial_lists_seeded_v1', 'true');
+      cachedLists = initial;
+      return initial;
+    } else {
+      cachedLists = [];
+      return cachedLists;
+    }
   } catch (e) {
     console.error('Error reading lists:', e);
   }
@@ -611,22 +821,35 @@ function getListsSnapshot(): MaterialList[] {
 function getRequisitionsSnapshot(): SupplyRequisition[] {
   if (cachedRequisitions) return cachedRequisitions;
   if (typeof window === 'undefined') return STATIC_REQUISITIONS;
+  const deletedIds = getDeletedRequisitionIds();
   try {
     const saved = localStorage.getItem(STORAGE_KEYS.REQUISITIONS);
     if (saved !== null) {
       const parsed = JSON.parse(saved);
       if (Array.isArray(parsed)) {
-        const sanitized = parsed.map((r, idx) => sanitizeRequisition(r, idx));
+        const sanitized = parsed
+          .map((r, idx) => sanitizeRequisition(r, idx))
+          .filter((r) => !deletedIds.has(r.id));
         cachedRequisitions = sanitized;
         return sanitized;
       }
     }
-    localStorage.setItem(STORAGE_KEYS.REQUISITIONS, JSON.stringify(STATIC_REQUISITIONS));
+    const alreadySeeded = localStorage.getItem('industrial_requisitions_seeded_v1') === 'true';
+    if (!alreadySeeded) {
+      const initial = STATIC_REQUISITIONS.filter((r) => !deletedIds.has(r.id));
+      localStorage.setItem(STORAGE_KEYS.REQUISITIONS, JSON.stringify(initial));
+      localStorage.setItem('industrial_requisitions_seeded_v1', 'true');
+      cachedRequisitions = initial;
+      return initial;
+    } else {
+      cachedRequisitions = [];
+      return cachedRequisitions;
+    }
   } catch (e) {
     console.error('Error reading requisitions:', e);
   }
-  cachedRequisitions = STATIC_REQUISITIONS;
-  return STATIC_REQUISITIONS;
+  cachedRequisitions = [];
+  return cachedRequisitions;
 }
 
 function getSettingsSnapshot(): AppSettings {
@@ -658,9 +881,14 @@ const getSettingsServerSnapshot = () => STATIC_SETTINGS;
 const emptySubscribe = () => () => {};
 const getIsLoadedClientSnapshot = () => true;
 const getIsLoadedServerSnapshot = () => false;
+const getCloudSyncStatusClient = () => cloudSyncStatus;
+const getCloudSyncStatusServer = () => 'syncing' as const;
+const getDatabaseProviderServer = () => 'firebase' as DatabaseProvider;
+const getLastBackupTimestampServer = () => 0;
 
 export function useIndustrialStorage() {
-  if (typeof window !== 'undefined') {
+  // Use effect to avoid invoking sync during render phase
+  if (typeof window !== 'undefined' && !hasInitActiveDatabase) {
     initActiveDatabaseSync();
   }
 
@@ -697,20 +925,20 @@ export function useIndustrialStorage() {
 
   const syncStatus = useSyncExternalStore(
     subscribe,
-    () => cloudSyncStatus,
-    () => 'syncing' as const
+    getCloudSyncStatusClient,
+    getCloudSyncStatusServer
   );
 
   const activeDatabaseProvider = useSyncExternalStore(
     subscribe,
     getActiveDatabaseProviderSnapshot,
-    () => 'firebase' as DatabaseProvider
+    getDatabaseProviderServer
   );
 
   const lastBackupTimestamp = useSyncExternalStore(
     subscribe,
     getLastBackupTimestampSnapshot,
-    () => 0
+    getLastBackupTimestampServer
   );
 
   // Save Catalog
@@ -788,64 +1016,97 @@ export function useIndustrialStorage() {
 
   // Delete Catalog Item (frees its sequential code number for reuse)
   const deleteCatalogItem = useCallback((id: string) => {
+    addDeletedCatalogId(id);
     const currentCatalog = getCatalogSnapshot();
     const updated = currentCatalog.filter((item) => item.id !== id);
-    saveCatalog(updated);
+    cachedCatalog = updated;
+    try {
+      localStorage.setItem(STORAGE_KEYS.CATALOG, JSON.stringify(updated));
+      localStorage.setItem('industrial_catalog_seeded_v1', 'true');
+    } catch (e) {
+      console.error('Error saving catalog:', e);
+    }
+    notify();
+
+    try {
+      deleteDoc(doc(db, 'catalog', id)).catch((err) => {
+        console.warn('Firestore deleteDoc catalog notice:', err);
+      });
+    } catch (e) {
+      console.warn('Error deleting catalog item from Firestore:', e);
+    }
 
     const prov = getActiveDatabaseProviderSnapshot();
-    if (prov === 'firebase') {
-      deleteDoc(doc(db, 'catalog', id)).catch((e) =>
-        handleFirestoreError(e, OperationType.DELETE, `catalog/${id}`)
-      );
-    } else if (prov === 'supabase') {
+    if (prov === 'supabase') {
       syncDataToSupabase('catalog', updated);
     }
-  }, [saveCatalog]);
+  }, []);
 
   // Delete multiple Catalog Items at once
   const deleteMultipleCatalogItems = useCallback((ids: string[]) => {
     if (!ids || ids.length === 0) return;
+    ids.forEach((id) => addDeletedCatalogId(id));
     const idsSet = new Set(ids);
     const currentCatalog = getCatalogSnapshot();
     const updated = currentCatalog.filter((item) => !idsSet.has(item.id));
-    saveCatalog(updated);
+    cachedCatalog = updated;
+    try {
+      localStorage.setItem(STORAGE_KEYS.CATALOG, JSON.stringify(updated));
+      localStorage.setItem('industrial_catalog_seeded_v1', 'true');
+    } catch (e) {
+      console.error('Error saving catalog:', e);
+    }
+    notify();
+
+    try {
+      const batch = writeBatch(db);
+      ids.forEach((id) => batch.delete(doc(db, 'catalog', id)));
+      batch.commit().catch((e) =>
+        console.warn('Error batch deleting items from Firestore:', e)
+      );
+    } catch (e) {
+      console.error('Error batch deleting items:', e);
+    }
 
     const prov = getActiveDatabaseProviderSnapshot();
-    if (prov === 'firebase') {
-      try {
-        const batch = writeBatch(db);
-        ids.forEach((id) => batch.delete(doc(db, 'catalog', id)));
-        batch.commit().catch((e) =>
-          handleFirestoreError(e, OperationType.DELETE, 'catalog')
-        );
-      } catch (e) {
-        console.error('Error batch deleting items:', e);
-      }
-    } else if (prov === 'supabase') {
+    if (prov === 'supabase') {
       syncDataToSupabase('catalog', updated);
     }
-  }, [saveCatalog]);
+  }, []);
 
   // Clear / Delete all Catalog Items
   const clearAllCatalogItems = useCallback(async () => {
-    saveCatalog([]);
+    const current = getCatalogSnapshot();
+    current.forEach((it) => addDeletedCatalogId(it.id));
+    cachedCatalog = [];
+    try {
+      localStorage.setItem(STORAGE_KEYS.CATALOG, JSON.stringify([]));
+      localStorage.setItem('industrial_catalog_seeded_v1', 'true');
+    } catch (e) {
+      console.error('Error clearing catalog:', e);
+    }
+    notify();
+
+    try {
+      const snap = await getDocs(collection(db, 'catalog'));
+      const batch = writeBatch(db);
+      snap.forEach((d) => batch.delete(d.ref));
+      await batch.commit();
+    } catch (e) {
+      console.warn('Error clearing catalog from Firestore:', e);
+    }
+
     const prov = getActiveDatabaseProviderSnapshot();
-    if (prov === 'firebase') {
-      try {
-        const snap = await getDocs(collection(db, 'catalog'));
-        const batch = writeBatch(db);
-        snap.forEach((d) => batch.delete(d.ref));
-        await batch.commit();
-      } catch (e) {
-        handleFirestoreError(e, OperationType.DELETE, 'catalog');
-      }
-    } else if (prov === 'supabase') {
+    if (prov === 'supabase') {
       await syncDataToSupabase('catalog', []);
     }
-  }, [saveCatalog]);
+  }, []);
 
   // Reset Catalog to Default Database
   const resetCatalogToDefault = useCallback(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem(DELETED_KEYS.CATALOG);
+    }
     const freshCatalog = generateSeedCatalog();
     saveCatalog(freshCatalog);
   }, [saveCatalog]);
@@ -863,12 +1124,16 @@ export function useIndustrialStorage() {
 
   // Save Lists
   const saveLists = useCallback((newLists: MaterialList[]) => {
+    const deletedIds = getDeletedListIds();
     const sanitized = Array.isArray(newLists)
-      ? newLists.map((l, idx) => sanitizeMaterialList(l, idx))
-      : STATIC_LISTS;
+      ? newLists
+          .map((l, idx) => sanitizeMaterialList(l, idx))
+          .filter((l) => !deletedIds.has(l.id))
+      : [];
     cachedLists = sanitized;
     try {
       localStorage.setItem(STORAGE_KEYS.LISTS, JSON.stringify(sanitized));
+      localStorage.setItem('industrial_lists_seeded_v1', 'true');
     } catch (e) {
       console.error('Error saving lists:', e);
     }
@@ -884,6 +1149,11 @@ export function useIndustrialStorage() {
 
   // Add or Update Material List
   const saveList = useCallback((list: MaterialList) => {
+    removeDeletedListId(list.id);
+    try {
+      localStorage.setItem('industrial_lists_seeded_v1', 'true');
+    } catch {}
+
     const currentLists = getListsSnapshot();
     const exists = currentLists.some((l) => l.id === list.id);
     let updated: MaterialList[];
@@ -899,12 +1169,16 @@ export function useIndustrialStorage() {
     }
     saveLists(updated);
 
-    const prov = getActiveDatabaseProviderSnapshot();
-    if (prov === 'firebase') {
+    try {
       setDoc(doc(db, 'lists', timestampedList.id), timestampedList).catch((e) =>
         handleFirestoreError(e, OperationType.WRITE, `lists/${timestampedList.id}`)
       );
-    } else if (prov === 'supabase') {
+    } catch (e) {
+      console.warn('Error saving list to Firestore:', e);
+    }
+
+    const prov = getActiveDatabaseProviderSnapshot();
+    if (prov === 'supabase') {
       syncDataToSupabase('lists', updated);
     }
     return timestampedList;
@@ -912,19 +1186,31 @@ export function useIndustrialStorage() {
 
   // Delete Material List
   const deleteList = useCallback((id: string) => {
+    addDeletedListId(id);
     const currentLists = getListsSnapshot();
     const updated = currentLists.filter((l) => l.id !== id);
-    saveLists(updated);
+    cachedLists = updated;
+    try {
+      localStorage.setItem(STORAGE_KEYS.LISTS, JSON.stringify(updated));
+      localStorage.setItem('industrial_lists_seeded_v1', 'true');
+    } catch (e) {
+      console.error('Error saving lists after delete:', e);
+    }
+    notify();
+
+    try {
+      deleteDoc(doc(db, 'lists', id)).catch((err) => {
+        console.warn('Firestore deleteDoc list notice:', err);
+      });
+    } catch (err) {
+      console.warn('Error deleting list from Firestore:', err);
+    }
 
     const prov = getActiveDatabaseProviderSnapshot();
-    if (prov === 'firebase') {
-      deleteDoc(doc(db, 'lists', id)).catch((e) =>
-        handleFirestoreError(e, OperationType.DELETE, `lists/${id}`)
-      );
-    } else if (prov === 'supabase') {
+    if (prov === 'supabase') {
       syncDataToSupabase('lists', updated);
     }
-  }, [saveLists]);
+  }, []);
 
   // Duplicate Material List
   const duplicateList = useCallback((id: string) => {
@@ -944,15 +1230,20 @@ export function useIndustrialStorage() {
       })),
     };
 
+    removeDeletedListId(cloned.id);
     const updated = [cloned, ...currentLists];
     saveLists(updated);
 
-    const prov = getActiveDatabaseProviderSnapshot();
-    if (prov === 'firebase') {
+    try {
       setDoc(doc(db, 'lists', cloned.id), cloned).catch((e) =>
         handleFirestoreError(e, OperationType.WRITE, `lists/${cloned.id}`)
       );
-    } else if (prov === 'supabase') {
+    } catch (e) {
+      console.warn('Error saving cloned list to Firestore:', e);
+    }
+
+    const prov = getActiveDatabaseProviderSnapshot();
+    if (prov === 'supabase') {
       syncDataToSupabase('lists', updated);
     }
     return cloned;
@@ -960,12 +1251,16 @@ export function useIndustrialStorage() {
 
   // Save Requisitions
   const saveRequisitions = useCallback((newRequisitions: SupplyRequisition[]) => {
+    const deletedIds = getDeletedRequisitionIds();
     const sanitized = Array.isArray(newRequisitions)
-      ? newRequisitions.map((r, idx) => sanitizeRequisition(r, idx))
-      : STATIC_REQUISITIONS;
+      ? newRequisitions
+          .map((r, idx) => sanitizeRequisition(r, idx))
+          .filter((r) => !deletedIds.has(r.id))
+      : [];
     cachedRequisitions = sanitized;
     try {
       localStorage.setItem(STORAGE_KEYS.REQUISITIONS, JSON.stringify(sanitized));
+      localStorage.setItem('industrial_requisitions_seeded_v1', 'true');
     } catch (e) {
       console.error('Error saving requisitions:', e);
     }
@@ -981,6 +1276,11 @@ export function useIndustrialStorage() {
 
   // Add or Update Supply Requisition
   const saveRequisition = useCallback((req: SupplyRequisition) => {
+    removeDeletedRequisitionId(req.id);
+    try {
+      localStorage.setItem('industrial_requisitions_seeded_v1', 'true');
+    } catch {}
+
     const current = getRequisitionsSnapshot();
     const exists = current.some((r) => r.id === req.id);
     let updated: SupplyRequisition[];
@@ -997,32 +1297,55 @@ export function useIndustrialStorage() {
     }
     saveRequisitions(updated);
 
-    const prov = getActiveDatabaseProviderSnapshot();
-    if (prov === 'firebase') {
+    try {
       setDoc(doc(db, 'requisitions', sanitizedReq.id), sanitizedReq).catch((e) =>
         handleFirestoreError(e, OperationType.WRITE, `requisitions/${sanitizedReq.id}`)
       );
-    } else if (prov === 'supabase') {
+    } catch (e) {
+      console.warn('Error writing requisition doc to Firestore:', e);
+    }
+
+    const prov = getActiveDatabaseProviderSnapshot();
+    if (prov === 'supabase') {
       syncDataToSupabase('requisitions', updated);
     }
     return sanitizedReq;
   }, [saveRequisitions]);
 
-  // Delete Requisition
+  // Delete Requisition (Permanent and immediate deletion across memory, localStorage, and Firestore)
   const deleteRequisition = useCallback((id: string) => {
+    if (!id) return;
+
+    // 1. Add ID to persistent tombstone set
+    addDeletedRequisitionId(id);
+
+    // 2. Immediately filter from current snapshot
     const current = getRequisitionsSnapshot();
     const updated = current.filter((r) => r.id !== id);
-    saveRequisitions(updated);
+    cachedRequisitions = updated;
+    try {
+      localStorage.setItem(STORAGE_KEYS.REQUISITIONS, JSON.stringify(updated));
+      localStorage.setItem('industrial_requisitions_seeded_v1', 'true');
+    } catch (e) {
+      console.error('Error saving requisitions after delete:', e);
+    }
+    notify();
 
+    // 3. Immediately delete from Firestore document
+    try {
+      deleteDoc(doc(db, 'requisitions', id)).catch((err) => {
+        console.warn('Firestore delete requisition notice:', err);
+      });
+    } catch (err) {
+      console.warn('Error calling deleteDoc for requisition:', err);
+    }
+
+    // 4. Sync to Supabase if connected
     const prov = getActiveDatabaseProviderSnapshot();
-    if (prov === 'firebase') {
-      deleteDoc(doc(db, 'requisitions', id)).catch((e) =>
-        handleFirestoreError(e, OperationType.DELETE, `requisitions/${id}`)
-      );
-    } else if (prov === 'supabase') {
+    if (prov === 'supabase') {
       syncDataToSupabase('requisitions', updated);
     }
-  }, [saveRequisitions]);
+  }, []);
 
   // Update Requisition Status
   const updateRequisitionStatus = useCallback((id: string, status: RequisitionStatus) => {
@@ -1305,7 +1628,6 @@ export function useIndustrialStorage() {
 
     if (typeof window !== 'undefined') {
       localStorage.setItem(STORAGE_KEYS.ACTIVE_PROVIDER, targetProvider);
-      cachedActiveProvider = targetProvider;
     }
 
     // Migration of current local data into target database
@@ -1328,6 +1650,7 @@ export function useIndustrialStorage() {
       }
     }
 
+    hasInitActiveDatabase = false;
     if (targetProvider === 'supabase') {
       isSupabaseSyncRunning = false;
       await initSupabaseSync();
