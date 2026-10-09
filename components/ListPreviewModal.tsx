@@ -239,11 +239,11 @@ const ListPreviewModalContent: React.FC<ListPreviewModalContentProps> = ({
                   onClose();
                   onGenerateRequisition(list);
                 }}
-                className="flex items-center gap-1.5 rounded-xl border border-amber-500/40 bg-amber-950/40 px-3 py-1.5 text-xs font-semibold text-amber-300 transition hover:bg-amber-900/50 hover:text-amber-200"
-                title="Criar Solicitação de Insumos a partir desta lista de materiais"
+                className="flex items-center gap-1.5 rounded-xl border border-amber-500/50 bg-amber-950/50 px-3 py-1.5 text-xs font-bold text-amber-300 transition hover:bg-amber-900/60 hover:text-amber-100 shadow-sm active:scale-95 cursor-pointer"
+                title="Transformar esta Lista em Solicitação de Insumos"
               >
-                <ClipboardList className="h-3.5 w-3.5" />
-                <span>Solicitar Insumos</span>
+                <ClipboardList className="h-4 w-4 text-amber-400" />
+                <span>Transformar em Solicitação</span>
               </button>
             )}
 

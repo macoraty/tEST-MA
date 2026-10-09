@@ -1,1 +1,351 @@
 @import "tailwindcss";
+
+/* ==========================================================================
+   THEME STYLES: INDUSTRIAL DARK / LIGHT MODE
+   ========================================================================== */
+
+/* Dark Mode Defaults (Pure Industrial Contrast) */
+html.dark {
+  color-scheme: dark;
+}
+
+html.dark body {
+  background-color: #09090b;
+  color: #f4f4f5;
+}
+
+/* ==========================================================================
+   LIGHT MODE: FUNDO CINZA CLARO SUAVE & PALETA HARMONIZADA
+   - Fundo da aplicação: Cinza neutro muito claro (#f1f3f6), calmo e anti-reflexo
+   - Superfícies/Cartões: Branco puro (#ffffff) com bordas suaves e definidas
+   - Tipografia: Contrastes balanceados (#0f172a, #1e293b, #334155, #64748b)
+   - Cores de destaque: Tons profundos e elegantes (ciano, esmeralda, âmbar)
+   ========================================================================== */
+html.light {
+  color-scheme: light;
+
+  /* CSS variable overrides for Tailwind */
+  --color-zinc-950: #ffffff;
+  --color-zinc-900: #ffffff;
+  --color-zinc-850: #f8fafc;
+  --color-zinc-800: #e2e8f0;
+  --color-zinc-700: #cbd5e1;
+  --color-zinc-600: #94a3b8;
+  --color-zinc-500: #64748b;
+  --color-zinc-400: #475569;
+  --color-zinc-300: #334155;
+  --color-zinc-200: #1e293b;
+  --color-zinc-100: #0f172a;
+  --color-zinc-50: #020617;
+}
+
+/* Light mode page background (Fundo cinza bem claro, quase branco) */
+html.light body,
+html.light .min-h-screen {
+  background-color: #f1f3f6 !important;
+  color: #1e293b !important;
+}
+
+/* Ambient glow blurs neutralized in light mode */
+html.light .fixed.inset-0.pointer-events-none .blur-3xl {
+  opacity: 0 !important;
+}
+
+/* Card surfaces & panels in light mode */
+html.light .bg-zinc-950,
+html.light .bg-zinc-900,
+html.light [class*="bg-zinc-950/"],
+html.light [class*="bg-zinc-900/"] {
+  background-color: #ffffff;
+}
+
+/* Elevated container wrappers (Cards, Modals, Sections) */
+html.light .rounded-3xl.border,
+html.light .rounded-2xl.border,
+html.light .rounded-xl.border {
+  background-color: #ffffff;
+  border-color: #e2e8f0;
+}
+
+/* Specific neutral containers that sit on top of cards (subsections/code pills) */
+html.light .rounded.bg-zinc-900,
+html.light .rounded-lg.bg-zinc-950,
+html.light [class*="bg-zinc-950/60"],
+html.light [class*="bg-zinc-950/70"],
+html.light [class*="bg-zinc-950/80"],
+html.light [class*="bg-zinc-900/60"],
+html.light [class*="bg-zinc-900/70"],
+html.light [class*="bg-zinc-900/80"] {
+  background-color: #f8fafc;
+}
+
+/* Clean borders in light mode */
+html.light .border-zinc-800,
+html.light [class*="border-zinc-800/"] {
+  border-color: #e2e8f0 !important;
+}
+
+html.light .border-zinc-750,
+html.light .border-zinc-700,
+html.light [class*="border-zinc-700/"] {
+  border-color: #cbd5e1 !important;
+}
+
+/* Typographic hierarchy in light mode */
+html.light .text-zinc-100 {
+  color: #0f172a !important;
+}
+
+html.light .text-zinc-200 {
+  color: #1e293b !important;
+}
+
+html.light .text-zinc-300 {
+  color: #334155 !important;
+}
+
+html.light .text-zinc-400 {
+  color: #64748b !important;
+}
+
+html.light .text-zinc-500 {
+  color: #94a3b8 !important;
+}
+
+/* Harmonized accent typography in light mode (no blown-out / neon colors) */
+html.light .text-cyan-400,
+html.light .text-cyan-300 {
+  color: #0284c7 !important; /* Deep industrial cyan / ocean blue */
+}
+
+html.light .text-emerald-400,
+html.light .text-emerald-300 {
+  color: #047857 !important; /* Deep forest emerald */
+}
+
+html.light .text-amber-400,
+html.light .text-amber-300 {
+  color: #b45309 !important; /* Rich amber / caramel */
+}
+
+html.light .text-rose-400,
+html.light .text-rose-300,
+html.light .text-red-400,
+html.light .text-red-300 {
+  color: #b91c1c !important; /* Deep crimson */
+}
+
+html.light .text-purple-400,
+html.light .text-purple-300 {
+  color: #6d28d9 !important; /* Royal violet */
+}
+
+html.light .text-sky-400,
+html.light .text-sky-300 {
+  color: #0284c7 !important;
+}
+
+/* Badge and status pill background tints in light mode */
+html.light .bg-cyan-950,
+html.light [class*="bg-cyan-950/"],
+html.light [class*="bg-cyan-500/10"],
+html.light [class*="bg-cyan-500/20"] {
+  background-color: #e0f2fe !important;
+  border-color: #bae6fd !important;
+}
+
+html.light .bg-emerald-950,
+html.light [class*="bg-emerald-950/"],
+html.light [class*="bg-emerald-500/10"],
+html.light [class*="bg-emerald-500/20"] {
+  background-color: #ecfdf5 !important;
+  border-color: #a7f3d0 !important;
+}
+
+html.light .bg-amber-950,
+html.light [class*="bg-amber-950/"],
+html.light [class*="bg-amber-500/10"],
+html.light [class*="bg-amber-500/20"] {
+  background-color: #fef3c7 !important;
+  border-color: #fde68a !important;
+}
+
+html.light .bg-rose-950,
+html.light [class*="bg-rose-950/"],
+html.light [class*="bg-rose-500/10"],
+html.light [class*="bg-rose-500/20"],
+html.light .bg-red-950,
+html.light [class*="bg-red-950/"],
+html.light [class*="bg-red-500/10"] {
+  background-color: #fee2e2 !important;
+  border-color: #fecaca !important;
+}
+
+html.light .bg-purple-950,
+html.light [class*="bg-purple-950/"],
+html.light [class*="bg-purple-500/10"],
+html.light [class*="bg-purple-500/20"] {
+  background-color: #f3e8ff !important;
+  border-color: #ddd6fe !important;
+}
+
+html.light .bg-sky-950,
+html.light [class*="bg-sky-950/"],
+html.light [class*="bg-sky-500/10"] {
+  background-color: #e0f2fe !important;
+  border-color: #bae6fd !important;
+}
+
+/* Dark gradient banners gracefully converted into soft pastel tints in light mode */
+html.light [class*="from-rose-950"] {
+  background-image: none !important;
+  background-color: #fff1f2 !important;
+  border-color: #fecdd3 !important;
+}
+
+html.light [class*="from-cyan-950"] {
+  background-image: none !important;
+  background-color: #f0f9ff !important;
+  border-color: #bae6fd !important;
+}
+
+html.light [class*="from-emerald-950"] {
+  background-image: none !important;
+  background-color: #ecfdf5 !important;
+  border-color: #a7f3d0 !important;
+}
+
+/* Secondary badges / buttons (zinc-800 & zinc-900 pills) */
+html.light .rounded.bg-zinc-800,
+html.light .rounded-full.bg-zinc-800,
+html.light .rounded-xl.bg-zinc-800,
+html.light .rounded-lg.bg-zinc-800,
+html.light .bg-zinc-800 {
+  background-color: #f1f5f9 !important;
+  border-color: #e2e8f0 !important;
+  color: #334155 !important;
+}
+
+/* Header & Top Navigation Bar in light mode */
+html.light header {
+  background-color: rgba(255, 255, 255, 0.94) !important;
+  border-color: #e2e8f0 !important;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04) !important;
+}
+
+/* Active navigation tabs in light mode */
+html.light nav button.bg-cyan-500\/10,
+html.light nav button.border-cyan-500\/30 {
+  background-color: #e0f2fe !important;
+  border-color: #7dd3fc !important;
+  color: #0369a1 !important;
+}
+
+/* Inactive navigation tabs hover */
+html.light nav button:not(.bg-cyan-500\/10):hover {
+  background-color: #f1f5f9 !important;
+  color: #0f172a !important;
+}
+
+/* Mobile bottom nav */
+html.light nav.fixed.bottom-0 {
+  background-color: rgba(255, 255, 255, 0.96) !important;
+  border-color: #e2e8f0 !important;
+  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.04) !important;
+}
+
+/* Slide-over Drawer Menu in light mode */
+html.light .max-w-sm.flex-col {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+}
+
+/* Inputs, Textareas, and Selects in light mode */
+html.light input:not([type="checkbox"]):not([type="radio"]):not([type="color"]),
+html.light select,
+html.light textarea {
+  background-color: #ffffff !important;
+  border-color: #cbd5e1 !important;
+  color: #0f172a !important;
+}
+
+html.light input::placeholder,
+html.light textarea::placeholder {
+  color: #94a3b8 !important;
+}
+
+html.light input:focus,
+html.light select:focus,
+html.light textarea:focus {
+  border-color: #0284c7 !important;
+  outline: none !important;
+  box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.15) !important;
+}
+
+/* Tables in light mode */
+html.light table {
+  background-color: #ffffff;
+}
+
+html.light thead,
+html.light th {
+  background-color: #f8fafc !important;
+  color: #475569 !important;
+  border-color: #e2e8f0 !important;
+}
+
+html.light tbody tr {
+  border-color: #f1f5f9 !important;
+}
+
+html.light tbody tr:hover {
+  background-color: #f8fafc !important;
+}
+
+html.light td {
+  border-color: #f1f5f9 !important;
+}
+
+/* Modal Backdrops & Overlays in light mode */
+html.light .fixed.inset-0.bg-black\/75,
+html.light .fixed.inset-0.bg-black\/80,
+html.light .fixed.inset-0.bg-black\/85 {
+  background-color: rgba(15, 23, 42, 0.45) !important;
+  backdrop-filter: blur(4px) !important;
+}
+
+/* Soft, natural shadows in light mode */
+html.light .shadow-sm {
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.04) !important;
+}
+
+html.light .shadow-md {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.03) !important;
+}
+
+html.light .shadow-lg,
+html.light .shadow-xl {
+  box-shadow: 0 8px 16px -2px rgba(0, 0, 0, 0.04), 0 4px 8px -3px rgba(0, 0, 0, 0.02) !important;
+}
+
+html.light .shadow-2xl {
+  box-shadow: 0 16px 24px -4px rgba(0, 0, 0, 0.06), 0 6px 10px -4px rgba(0, 0, 0, 0.02) !important;
+}
+
+html.light [class*="shadow-cyan-950"],
+html.light [class*="shadow-emerald-950"],
+html.light [class*="shadow-amber-950"],
+html.light [class*="shadow-rose-950"],
+html.light [class*="shadow-black"] {
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -4px rgba(0, 0, 0, 0.03) !important;
+}
+
+/* Scrollbars in light mode */
+html.light ::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+html.light ::-webkit-scrollbar-track {
+  background: #f1f3f6;
+}

@@ -108,7 +108,29 @@ export interface AppSettings {
   excelShowWeights?: boolean;
 }
 
-export type ActiveTab = 'lists' | 'new-list' | 'catalog' | 'settings' | 'requisitions';
+export type PartnerType = 'cliente' | 'fornecedor' | 'ambos';
+
+export interface Partner {
+  id: string;
+  type: PartnerType; // 'cliente' | 'fornecedor' | 'ambos'
+  name: string; // Razão Social / Nome Principal
+  tradeName?: string; // Nome Fantasia
+  document?: string; // CNPJ ou CPF
+  phone?: string; // Telefone / WhatsApp
+  email?: string; // E-mail
+  contactPerson?: string; // Pessoa de Contato / Representante
+  city?: string; // Cidade
+  state?: string; // UF
+  address?: string; // Endereço completo
+  category?: string; // Categoria / Segmento (ex: Usinagem, Parafusos, Automação, Indústria)
+  paymentTerms?: string; // Condição Comercial / Pagamento
+  notes?: string; // Observações / Notas
+  status: 'ativo' | 'inativo';
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type ActiveTab = 'lists' | 'new-list' | 'catalog' | 'settings' | 'requisitions' | 'partners';
 
 export type RequisitionPriority = 'Baixa' | 'Normal' | 'Alta' | 'Urgente';
 export type RequisitionStatus = 'Pendente' | 'Em Cotação' | 'Aprovada' | 'Entregue' | 'Cancelada';

@@ -27,6 +27,7 @@ import {
   AlertCircle,
   PlusCircle,
   Sparkles,
+  ClipboardList,
 } from 'lucide-react';
 import { ListPreviewModal } from '@/components/ListPreviewModal';
 
@@ -38,6 +39,7 @@ interface ListEditorProps {
   onBackToLists: () => void;
   onEditHeader: () => void;
   onOpenWhatsApp: (list: MaterialList) => void;
+  onGenerateRequisition?: (list: MaterialList) => void;
 }
 
 type ItemSortField = 'order' | 'code' | 'description' | 'group' | 'unit' | 'quantity' | 'unitCost' | 'totalCost' | 'totalWeight';
@@ -50,6 +52,7 @@ export const ListEditor: React.FC<ListEditorProps> = ({
   onBackToLists,
   onEditHeader,
   onOpenWhatsApp,
+  onGenerateRequisition,
 }) => {
   const [items, setItems] = useState<MaterialListItem[]>(list.items || []);
   const [searchQuery, setSearchQuery] = useState('');
@@ -420,6 +423,20 @@ export const ListEditor: React.FC<ListEditorProps> = ({
                 <FileSpreadsheet className="h-4 w-4" />
                 <span className="hidden xs:inline">Excel</span>
               </button>
+
+              {/* Transformar em Solicitação de Insumos */}
+              {onGenerateRequisition && (
+                <button
+                  type="button"
+                  id="btn-editor-transform-requisition"
+                  onClick={() => onGenerateRequisition({ ...list, items })}
+                  className="flex items-center justify-center gap-1.5 rounded-xl border border-amber-500/50 bg-amber-950/40 px-2.5 py-2 text-xs font-bold text-amber-300 transition hover:bg-amber-900/60 hover:text-amber-200 min-h-[38px] active:scale-95 shadow-sm"
+                  title="Transformar esta Lista em Solicitação de Insumos"
+                >
+                  <ClipboardList className="h-4 w-4 text-amber-400" />
+                  <span className="hidden sm:inline">Solicitação</span>
+                </button>
+              )}
             </div>
 
             {/* SAVE BUTTON */}
@@ -1234,6 +1251,10 @@ export const ListEditor: React.FC<ListEditorProps> = ({
           setIsPreviewOpen(false);
           onOpenWhatsApp(previewTarget);
         }}
+        onGenerateRequisition={onGenerateRequisition ? (previewTarget) => {
+          setIsPreviewOpen(false);
+          onGenerateRequisition(previewTarget);
+        } : undefined}
       />
     </div>
   );

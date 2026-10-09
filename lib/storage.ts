@@ -1,6 +1,6 @@
 'use client';
 
-import { useSyncExternalStore, useCallback } from 'react';
+import { useSyncExternalStore, useCallback, useEffect } from 'react';
 import {
   CatalogItem,
   MaterialList,
@@ -11,12 +11,15 @@ import {
   RequisitionItem,
   RequisitionStatus,
   RequisitionPriority,
+  Partner,
+  PartnerType,
 } from './types';
 import {
   generateSeedCatalog,
   DEFAULT_SETTINGS,
   INITIAL_SAMPLE_LISTS,
   INITIAL_SAMPLE_REQUISITIONS,
+  INITIAL_SAMPLE_PARTNERS,
 } from './seedData';
 import { getNextCodeForGroup, getGroupPrefix, regenerateAllCatalogCodes } from './codeUtils';
 import {
@@ -49,6 +52,7 @@ const STORAGE_KEYS = {
   CATALOG: 'industrial_catalog_items_v1',
   LISTS: 'industrial_material_lists_v1',
   REQUISITIONS: 'industrial_requisitions_v1',
+  PARTNERS: 'industrial_partners_v1',
   SETTINGS: 'industrial_app_settings_v1',
   ACTIVE_PROVIDER: 'industrial_active_database_provider_v1',
   LAST_BACKUP: 'industrial_last_backup_timestamp_v1',
@@ -246,22 +250,89 @@ export function sanitizeRequisition(req: unknown, index = 0): SupplyRequisition 
   };
 }
 
+/**
+ * Ensures any partner (Cliente / Fornecedor) object has valid, safe properties.
+ */
+export function sanitizePartner(p: unknown, index = 0): Partner {
+  if (!p || typeof p !== 'object') {
+    return {
+      id: `partner-fallback-${index}-${Date.now()}`,
+      type: 'cliente',
+      name: 'Cliente / Fornecedor Sem Nome',
+      tradeName: '',
+      document: '',
+      phone: '',
+      email: '',
+      contactPerson: '',
+      city: '',
+      state: '',
+      address: '',
+      category: 'Geral',
+      paymentTerms: '',
+      notes: '',
+      status: 'ativo',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+  }
+
+  const raw = p as Record<string, unknown>;
+  const rawType = String(raw.type || 'cliente').toLowerCase();
+  const type: PartnerType = (rawType === 'fornecedor' || rawType === 'ambos') ? (rawType as PartnerType) : 'cliente';
+  const rawStatus = String(raw.status || 'ativo').toLowerCase();
+  const status = rawStatus === 'inativo' ? 'inativo' : 'ativo';
+
+  return {
+    id: String(raw.id || `partner-${index}-${Date.now()}`),
+    type,
+    name: String(raw.name || '').trim() || 'Sem Razão Social / Nome',
+    tradeName: raw.tradeName ? String(raw.tradeName).trim() : '',
+    document: raw.document ? String(raw.document).trim() : '',
+    phone: raw.phone ? String(raw.phone).trim() : '',
+    email: raw.email ? String(raw.email).trim() : '',
+    contactPerson: raw.contactPerson ? String(raw.contactPerson).trim() : '',
+    city: raw.city ? String(raw.city).trim() : '',
+    state: raw.state ? String(raw.state).trim().toUpperCase() : '',
+    address: raw.address ? String(raw.address).trim() : '',
+    category: raw.category ? String(raw.category).trim() : '',
+    paymentTerms: raw.paymentTerms ? String(raw.paymentTerms).trim() : '',
+    notes: raw.notes ? String(raw.notes).trim() : '',
+    status,
+    createdAt: String(raw.createdAt || new Date().toISOString()),
+    updatedAt: String(raw.updatedAt || new Date().toISOString()),
+  };
+}
+
 const STATIC_CATALOG: CatalogItem[] = generateSeedCatalog().map((it, idx) => sanitizeCatalogItem(it, idx));
 const STATIC_LISTS: MaterialList[] = INITIAL_SAMPLE_LISTS.map((l, idx) => sanitizeMaterialList(l, idx));
 const STATIC_REQUISITIONS: SupplyRequisition[] = INITIAL_SAMPLE_REQUISITIONS.map((r, idx) => sanitizeRequisition(r, idx));
+const STATIC_PARTNERS: Partner[] = INITIAL_SAMPLE_PARTNERS.map((p, idx) => sanitizePartner(p, idx));
 const STATIC_SETTINGS: AppSettings = DEFAULT_SETTINGS;
 
 let cachedCatalog: CatalogItem[] | null = null;
 let cachedLists: MaterialList[] | null = null;
 let cachedRequisitions: SupplyRequisition[] | null = null;
+let cachedPartners: Partner[] | null = null;
 let cachedSettings: AppSettings | null = null;
 let cloudSyncStatus: 'synced' | 'syncing' | 'offline' = 'syncing';
 let isFirestoreInitialized = false;
 
 const listeners = new Set<() => void>();
+let isNotifyScheduled = false;
 
 function notify() {
-  listeners.forEach((listener) => listener());
+  if (isNotifyScheduled) return;
+  isNotifyScheduled = true;
+  queueMicrotask(() => {
+    isNotifyScheduled = false;
+    listeners.forEach((listener) => {
+      try {
+        listener();
+      } catch (e) {
+        console.error('Store notification error:', e);
+      }
+    });
+  });
 }
 
 // Persistent tombstone keys to guarantee deleted items never return from delayed sync or stale snapshots
@@ -269,6 +340,7 @@ const DELETED_KEYS = {
   REQUISITIONS: 'industrial_deleted_requisitions_v1',
   LISTS: 'industrial_deleted_lists_v1',
   CATALOG: 'industrial_deleted_catalog_v1',
+  PARTNERS: 'industrial_deleted_partners_v1',
 };
 
 export function getDeletedRequisitionIds(): Set<string> {
@@ -363,6 +435,38 @@ export function removeDeletedCatalogId(id: string) {
     if (s.has(id)) {
       s.delete(id);
       localStorage.setItem(DELETED_KEYS.CATALOG, JSON.stringify(Array.from(s)));
+    }
+  } catch {}
+}
+
+export function getDeletedPartnerIds(): Set<string> {
+  if (typeof window === 'undefined') return new Set();
+  try {
+    const raw = localStorage.getItem(DELETED_KEYS.PARTNERS);
+    if (raw) {
+      const arr = JSON.parse(raw);
+      if (Array.isArray(arr)) return new Set(arr);
+    }
+  } catch {}
+  return new Set();
+}
+
+export function addDeletedPartnerId(id: string) {
+  if (typeof window === 'undefined' || !id) return;
+  try {
+    const s = getDeletedPartnerIds();
+    s.add(id);
+    localStorage.setItem(DELETED_KEYS.PARTNERS, JSON.stringify(Array.from(s)));
+  } catch {}
+}
+
+export function removeDeletedPartnerId(id: string) {
+  if (typeof window === 'undefined' || !id) return;
+  try {
+    const s = getDeletedPartnerIds();
+    if (s.has(id)) {
+      s.delete(id);
+      localStorage.setItem(DELETED_KEYS.PARTNERS, JSON.stringify(Array.from(s)));
     }
   } catch {}
 }
@@ -613,21 +717,30 @@ function initFirestoreSync() {
 let isSupabaseSyncRunning = false;
 let hasInitActiveDatabase = false;
 
-export function getActiveDatabaseProviderSnapshot(): DatabaseProvider {
-  if (typeof window === 'undefined') return 'firebase';
+let cachedActiveProvider: DatabaseProvider = 'firebase';
+let cachedLastBackupTimestamp = 0;
+
+if (typeof window !== 'undefined') {
   try {
-    const saved = localStorage.getItem(STORAGE_KEYS.ACTIVE_PROVIDER) as DatabaseProvider;
-    if (saved === 'firebase' || saved === 'supabase') {
-      return saved;
+    const savedProv = localStorage.getItem(STORAGE_KEYS.ACTIVE_PROVIDER) as DatabaseProvider;
+    if (savedProv === 'firebase' || savedProv === 'supabase') {
+      cachedActiveProvider = savedProv;
     }
   } catch {}
-  return 'firebase';
+  try {
+    const savedBackup = localStorage.getItem(STORAGE_KEYS.LAST_BACKUP);
+    if (savedBackup) cachedLastBackupTimestamp = Number(savedBackup) || 0;
+  } catch {}
+}
+
+export function getActiveDatabaseProviderSnapshot(): DatabaseProvider {
+  if (typeof window === 'undefined') return 'firebase';
+  return cachedActiveProvider;
 }
 
 export function getLastBackupTimestampSnapshot(): number {
   if (typeof window === 'undefined') return 0;
-  const saved = localStorage.getItem(STORAGE_KEYS.LAST_BACKUP);
-  return saved ? Number(saved) || 0 : 0;
+  return cachedLastBackupTimestamp;
 }
 
 async function initSupabaseSync() {
@@ -736,7 +849,20 @@ function subscribe(callback: () => void) {
     if (e.key === STORAGE_KEYS.CATALOG) cachedCatalog = null;
     if (e.key === STORAGE_KEYS.LISTS) cachedLists = null;
     if (e.key === STORAGE_KEYS.REQUISITIONS) cachedRequisitions = null;
+    if (e.key === STORAGE_KEYS.PARTNERS) cachedPartners = null;
     if (e.key === STORAGE_KEYS.SETTINGS) cachedSettings = null;
+    if (e.key === STORAGE_KEYS.ACTIVE_PROVIDER) {
+      try {
+        const saved = localStorage.getItem(STORAGE_KEYS.ACTIVE_PROVIDER) as DatabaseProvider;
+        if (saved === 'firebase' || saved === 'supabase') cachedActiveProvider = saved;
+      } catch {}
+    }
+    if (e.key === STORAGE_KEYS.LAST_BACKUP) {
+      try {
+        const saved = localStorage.getItem(STORAGE_KEYS.LAST_BACKUP);
+        if (saved) cachedLastBackupTimestamp = Number(saved) || 0;
+      } catch {}
+    }
     callback();
   };
   if (typeof window !== 'undefined') {
@@ -874,9 +1000,44 @@ function getSettingsSnapshot(): AppSettings {
   return STATIC_SETTINGS;
 }
 
+function getPartnersSnapshot(): Partner[] {
+  if (cachedPartners) return cachedPartners;
+  if (typeof window === 'undefined') return STATIC_PARTNERS;
+  const deletedIds = getDeletedPartnerIds();
+  try {
+    const saved = localStorage.getItem(STORAGE_KEYS.PARTNERS);
+    if (saved !== null) {
+      const parsed = JSON.parse(saved);
+      if (Array.isArray(parsed)) {
+        const sanitized = parsed
+          .map((p, idx) => sanitizePartner(p, idx))
+          .filter((p) => !deletedIds.has(p.id));
+        cachedPartners = sanitized;
+        return sanitized;
+      }
+    }
+    const alreadySeeded = localStorage.getItem('industrial_partners_seeded_v1') === 'true';
+    if (!alreadySeeded) {
+      const initial = STATIC_PARTNERS.filter((p) => !deletedIds.has(p.id));
+      localStorage.setItem(STORAGE_KEYS.PARTNERS, JSON.stringify(initial));
+      localStorage.setItem('industrial_partners_seeded_v1', 'true');
+      cachedPartners = initial;
+      return initial;
+    } else {
+      cachedPartners = [];
+      return cachedPartners;
+    }
+  } catch (e) {
+    console.error('Error reading partners:', e);
+  }
+  cachedPartners = STATIC_PARTNERS;
+  return STATIC_PARTNERS;
+}
+
 const getCatalogServerSnapshot = () => STATIC_CATALOG;
 const getListsServerSnapshot = () => STATIC_LISTS;
 const getRequisitionsServerSnapshot = () => STATIC_REQUISITIONS;
+const getPartnersServerSnapshot = () => STATIC_PARTNERS;
 const getSettingsServerSnapshot = () => STATIC_SETTINGS;
 const emptySubscribe = () => () => {};
 const getIsLoadedClientSnapshot = () => true;
@@ -888,9 +1049,11 @@ const getLastBackupTimestampServer = () => 0;
 
 export function useIndustrialStorage() {
   // Use effect to avoid invoking sync during render phase
-  if (typeof window !== 'undefined' && !hasInitActiveDatabase) {
-    initActiveDatabaseSync();
-  }
+  useEffect(() => {
+    if (typeof window !== 'undefined' && !hasInitActiveDatabase) {
+      initActiveDatabaseSync();
+    }
+  }, []);
 
   const catalog = useSyncExternalStore(
     subscribe,
@@ -908,6 +1071,12 @@ export function useIndustrialStorage() {
     subscribe,
     getRequisitionsSnapshot,
     getRequisitionsServerSnapshot
+  );
+
+  const partners = useSyncExternalStore(
+    subscribe,
+    getPartnersSnapshot,
+    getPartnersServerSnapshot
   );
 
   const settings = useSyncExternalStore(
@@ -1429,6 +1598,86 @@ export function useIndustrialStorage() {
     return newBOM;
   }, [saveList, updateRequisitionStatus]);
 
+  // Save Partners (bulk)
+  const savePartners = useCallback((newPartners: Partner[]) => {
+    const deletedIds = getDeletedPartnerIds();
+    const sanitized = Array.isArray(newPartners)
+      ? newPartners
+          .map((p, idx) => sanitizePartner(p, idx))
+          .filter((p) => !deletedIds.has(p.id))
+      : [];
+    cachedPartners = sanitized;
+    try {
+      localStorage.setItem(STORAGE_KEYS.PARTNERS, JSON.stringify(sanitized));
+      localStorage.setItem('industrial_partners_seeded_v1', 'true');
+    } catch (e) {
+      console.error('Error saving partners:', e);
+    }
+    notify();
+  }, []);
+
+  // Save single Partner (create or update)
+  const savePartner = useCallback((partner: Partner) => {
+    const sanitizedPartner = sanitizePartner(partner);
+    removeDeletedPartnerId(sanitizedPartner.id);
+
+    const current = getPartnersSnapshot();
+    const index = current.findIndex((p) => p.id === sanitizedPartner.id);
+    let updated: Partner[];
+
+    if (index >= 0) {
+      updated = [...current];
+      updated[index] = { ...sanitizedPartner, updatedAt: new Date().toISOString() };
+    } else {
+      updated = [sanitizedPartner, ...current];
+    }
+
+    savePartners(updated);
+
+    try {
+      setDoc(doc(db, 'partners', sanitizedPartner.id), sanitizedPartner).catch((e) =>
+        handleFirestoreError(e, OperationType.WRITE, `partners/${sanitizedPartner.id}`)
+      );
+    } catch (e) {
+      console.warn('Error saving partner to Firestore:', e);
+    }
+
+    const prov = getActiveDatabaseProviderSnapshot();
+    if (prov === 'supabase') {
+      syncDataToSupabase('partners', updated);
+    }
+    return sanitizedPartner;
+  }, [savePartners]);
+
+  // Delete Partner
+  const deletePartner = useCallback((id: string) => {
+    if (!id) return;
+    addDeletedPartnerId(id);
+    const current = getPartnersSnapshot();
+    const updated = current.filter((p) => p.id !== id);
+    cachedPartners = updated;
+    try {
+      localStorage.setItem(STORAGE_KEYS.PARTNERS, JSON.stringify(updated));
+      localStorage.setItem('industrial_partners_seeded_v1', 'true');
+    } catch (e) {
+      console.error('Error saving partners after delete:', e);
+    }
+    notify();
+
+    try {
+      deleteDoc(doc(db, 'partners', id)).catch((err) => {
+        console.warn('Firestore delete partner notice:', err);
+      });
+    } catch (err) {
+      console.warn('Error calling deleteDoc for partner:', err);
+    }
+
+    const prov = getActiveDatabaseProviderSnapshot();
+    if (prov === 'supabase') {
+      syncDataToSupabase('partners', updated);
+    }
+  }, []);
+
   // Save Settings
   const saveSettings = useCallback((newSettings: AppSettings) => {
     cachedSettings = newSettings;
@@ -1593,6 +1842,7 @@ export function useIndustrialStorage() {
       catalog: getCatalogSnapshot(),
       lists: getListsSnapshot(),
       requisitions: getRequisitionsSnapshot(),
+      partners: getPartnersSnapshot(),
     };
     const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -1602,8 +1852,10 @@ export function useIndustrialStorage() {
     a.click();
     URL.revokeObjectURL(url);
 
+    const nowTs = Date.now();
+    cachedLastBackupTimestamp = nowTs;
     if (typeof window !== 'undefined') {
-      localStorage.setItem(STORAGE_KEYS.LAST_BACKUP, String(Date.now()));
+      localStorage.setItem(STORAGE_KEYS.LAST_BACKUP, String(nowTs));
     }
     notify();
     return backupData;
@@ -1626,6 +1878,7 @@ export function useIndustrialStorage() {
       };
     }
 
+    cachedActiveProvider = targetProvider;
     if (typeof window !== 'undefined') {
       localStorage.setItem(STORAGE_KEYS.ACTIVE_PROVIDER, targetProvider);
     }
@@ -1679,6 +1932,9 @@ export function useIndustrialStorage() {
       if (data.requisitions && Array.isArray(data.requisitions)) {
         saveRequisitions(data.requisitions);
       }
+      if (data.partners && Array.isArray(data.partners)) {
+        savePartners(data.partners);
+      }
       if (data.settings) {
         saveSettings(data.settings);
       }
@@ -1687,13 +1943,14 @@ export function useIndustrialStorage() {
       console.error('Failed to import backup:', err);
       return false;
     }
-  }, [saveCatalog, saveLists, saveRequisitions, saveSettings]);
+  }, [saveCatalog, saveLists, saveRequisitions, savePartners, saveSettings]);
 
   return {
     isLoaded,
     catalog,
     lists,
     requisitions,
+    partners,
     settings,
     saveCatalog,
     saveCatalogItem,
@@ -1710,6 +1967,9 @@ export function useIndustrialStorage() {
     deleteRequisition,
     updateRequisitionStatus,
     convertRequisitionToBOM,
+    savePartners,
+    savePartner,
+    deletePartner,
     saveSettings,
     addGroup,
     editGroup,

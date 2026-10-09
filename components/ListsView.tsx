@@ -363,11 +363,11 @@ export const ListsView: React.FC<ListsViewProps> = ({
                       <button
                         type="button"
                         onClick={() => onGenerateRequisition(list)}
-                        className="flex items-center gap-1 rounded-xl border border-amber-500/40 bg-amber-950/40 px-2.5 py-1.5 text-xs font-semibold text-amber-300 hover:bg-amber-900/50 min-h-[36px] transition cursor-pointer"
-                        title="Gerar Solicitação de Insumos"
+                        className="flex items-center gap-1.5 rounded-xl border border-amber-500/40 bg-amber-950/40 px-2.5 py-1.5 text-xs font-bold text-amber-300 hover:bg-amber-900/50 hover:text-amber-200 min-h-[36px] transition cursor-pointer"
+                        title="Transformar esta Lista em Solicitação de Insumos"
                       >
-                        <ClipboardList className="h-3.5 w-3.5" />
-                        <span className="hidden xs:inline">Solicitar</span>
+                        <ClipboardList className="h-3.5 w-3.5 text-amber-400" />
+                        <span className="hidden xs:inline">Solicitação</span>
                       </button>
                     )}
                     <button
@@ -767,14 +767,16 @@ export const ListsView: React.FC<ListsViewProps> = ({
                               <Eye className="h-4 w-4" />
                             </button>
 
-                            {/* Gerar Solicitação de Insumos */}
+                            {/* Gerar / Transformar em Solicitação de Insumos */}
                             {onGenerateRequisition && (
                               <button
+                                type="button"
                                 onClick={() => onGenerateRequisition(list)}
-                                title="Gerar Solicitação de Insumos a partir desta Lista"
-                                className="rounded-lg p-1.5 text-amber-400 transition hover:bg-amber-950/60 hover:text-amber-300"
+                                title="Transformar em Solicitação de Insumos (Gerar Requisição)"
+                                className="inline-flex items-center gap-1.5 rounded-lg border border-amber-500/50 bg-amber-500/15 px-2.5 py-1 text-xs font-bold text-amber-300 transition hover:bg-amber-500/30 hover:text-amber-100 shadow-sm active:scale-95 cursor-pointer"
                               >
-                                <ClipboardList className="h-4 w-4" />
+                                <ClipboardList className="h-4 w-4 text-amber-400" />
+                                <span className="hidden xl:inline text-[11px]">Solicitação</span>
                               </button>
                             )}
 

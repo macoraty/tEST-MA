@@ -9,6 +9,7 @@ import { ListEditor } from '@/components/ListEditor';
 import { CatalogView } from '@/components/CatalogView';
 import { SettingsView } from '@/components/SettingsView';
 import { RequisitionsView } from '@/components/RequisitionsView';
+import { PartnersView } from '@/components/PartnersView';
 import { RequisitionModal } from '@/components/RequisitionModal';
 import { RequisitionPreviewModal } from '@/components/RequisitionPreviewModal';
 import { ListHeaderModal } from '@/components/ListHeaderModal';
@@ -26,6 +27,7 @@ export default function Home() {
     lists,
     catalog,
     requisitions,
+    partners,
     settings,
     isLoaded,
     saveList,
@@ -43,6 +45,9 @@ export default function Home() {
     deleteRequisition,
     updateRequisitionStatus,
     convertRequisitionToBOM,
+    savePartners,
+    savePartner,
+    deletePartner,
     saveSettings,
     addGroup,
     editGroup,
@@ -304,10 +309,15 @@ export default function Home() {
           }}
           onOpenNewListModal={handleOpenNewListModal}
           onOpenNewRequisitionModal={handleOpenNewRequisitionModal}
+          onOpenNewPartnerModal={() => {
+            setActiveListId(null);
+            setActiveTab('partners');
+          }}
           onExportBackup={exportBackupJSON}
           listsCount={lists.length}
           catalogCount={catalog.length}
           requisitionsCount={requisitions.length}
+          partnersCount={partners.length}
           pendingRequisitionsCount={pendingReqsCount}
           settings={settings}
           syncStatus={syncStatus}
@@ -335,6 +345,9 @@ export default function Home() {
                 setIsHeaderModalOpen(true);
               }}
               onOpenWhatsApp={handleOpenWhatsApp}
+              onGenerateRequisition={(list) => {
+                handleOpenNewRequisitionModal(list.id);
+              }}
             />
           ) : activeTab === 'lists' ? (
             /* 2. LISTS OVERVIEW (MAIN LISTS VIEW) */
@@ -381,8 +394,52 @@ export default function Home() {
               onSaveCatalog={saveCatalog}
               onSaveSettings={saveSettings}
             />
+          ) : activeTab === 'partners' ? (
+            /* 5. FORNECEDORES & CLIENTES (PARTNERS VIEW) */
+            <PartnersView
+              partners={partners}
+              settings={settings}
+              onSavePartner={savePartner}
+              onDeletePartner={deletePartner}
+              onNewListForClient={(clientName) => {
+                setEditingHeaderList({
+                  id: '',
+                  name: `Lista - ${clientName}`,
+                  machine: '',
+                  client: clientName,
+                  responsible: settings.defaultResponsible || '',
+                  date: new Date().toISOString().slice(0, 10),
+                  status: 'Rascunho',
+                  notes: '',
+                  items: [],
+                  createdAt: new Date().toISOString(),
+                  updatedAt: new Date().toISOString(),
+                });
+                setIsHeaderModalOpen(true);
+              }}
+              onNewRequisitionForSupplier={(supplierName) => {
+                setEditingRequisition({
+                  id: '',
+                  protocol: `REQ-2026-${String(requisitions.length + 1).padStart(4, '0')}`,
+                  title: `Cotação de Insumos - ${supplierName}`,
+                  requesterName: settings.defaultResponsible || '',
+                  sector: 'Compras & Almoxarifado',
+                  priority: 'Normal',
+                  status: 'Pendente',
+                  requestDate: new Date().toISOString().slice(0, 10),
+                  justification: `Cotação e aquisição direta com o fornecedor ${supplierName}`,
+                  notes: `Fornecedor sugerido: ${supplierName}`,
+                  items: [],
+                  totalEstimatedCost: 0,
+                  totalItemsCount: 0,
+                  createdAt: new Date().toISOString(),
+                  updatedAt: new Date().toISOString(),
+                });
+                setIsRequisitionModalOpen(true);
+              }}
+            />
           ) : (
-            /* 5. SETTINGS VIEW */
+            /* 6. SETTINGS VIEW */
             <SettingsView
               settings={settings}
               catalog={catalog}
@@ -418,7 +475,16 @@ export default function Home() {
           initialList={editingHeaderList}
           settings={settings}
           existingMachines={Array.from(new Set(lists.map((l) => l.machine).filter(Boolean)))}
-          existingClients={Array.from(new Set(lists.map((l) => l.client).filter(Boolean)))}
+          existingClients={Array.from(
+            new Set([
+              ...lists.map((l) => l.client),
+              ...partners.filter((p) => p.type === 'cliente' || p.type === 'ambos').map((p) => p.name),
+              ...partners
+                .filter((p) => p.type === 'cliente' || p.type === 'ambos')
+                .map((p) => p.tradeName)
+                .filter(Boolean) as string[],
+            ])
+          ).filter(Boolean)}
         />
 
         {/* MODAL 2: Add / Edit Catalog Item */}

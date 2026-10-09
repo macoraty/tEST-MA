@@ -790,14 +790,14 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                       )}
                       <div className="text-left min-w-0">
                         <span className="block truncate text-xs font-bold text-zinc-100">
-                          {appName || 'ListaPro Industrial'}
+                          {appName || 'Maikmaq System'}
                         </span>
-                        <span className="text-[10px] text-zinc-400">v1.0</span>
+                        <span className="text-[10px] text-zinc-400">v2.6</span>
                       </div>
                     </div>
 
                     <span className="inline-block rounded-md bg-cyan-950/80 px-2 py-0.5 font-mono text-[10px] font-semibold text-cyan-300 border border-cyan-500/30">
-                      {appLogo ? 'Logo Customizado Ativo' : 'Monograma [M] Ativo'}
+                      {appLogo ? 'Logo Customizado Ativo' : 'Monograma [MS] Ativo'}
                     </span>
                   </div>
                 </div>
@@ -813,7 +813,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                       value={appName}
                       onChange={(e) => setAppName(e.target.value)}
                       onBlur={() => commitSettings()}
-                      placeholder="Ex: ListaPro Industrial ou Metalúrgica Silva"
+                      placeholder="Ex: Maikmaq System"
                       className="w-full rounded-xl border border-zinc-800 bg-zinc-900 px-3.5 py-2.5 text-xs text-zinc-100 outline-none transition focus:border-cyan-500"
                     />
                     <p className="mt-1 text-[11px] text-zinc-400">

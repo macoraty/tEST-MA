@@ -1,6 +1,6 @@
 {
-  "name": "Gestor de Listas de Materiais & Insumos",
-  "description": "Sistema completo para criação e gestão de listas de materiais por máquina e cliente, com catálogo pré-carregado, pesquisa rápida, exportação em Excel e PDF, compartilhamento via WhatsApp e parametrização dinâmica.",
+  "name": "Maikmaq System",
+  "description": "Maikmaq System - Sistema industrial completo para criação e gestão de listas de materiais (BOM), catálogo de insumos, requisições, fornecedores e clientes.",
   "requestFramePermissions": [],
   "majorCapabilities": [
     "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"

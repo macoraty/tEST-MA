@@ -24,8 +24,12 @@ import {
   UserCheck,
   Server,
   Lock,
+  Sun,
+  Moon,
+  Users,
 } from 'lucide-react';
 import { useAppAuth } from '@/lib/authContext';
+import { useTheme } from '@/lib/themeContext';
 
 interface NavbarProps {
   activeTab: ActiveTab;
@@ -33,9 +37,11 @@ interface NavbarProps {
   listsCount: number;
   catalogCount: number;
   requisitionsCount: number;
+  partnersCount?: number;
   pendingRequisitionsCount?: number;
   onOpenNewListModal: () => void;
   onOpenNewRequisitionModal: () => void;
+  onOpenNewPartnerModal?: () => void;
   onExportBackup?: () => void;
   settings?: AppSettings;
   syncStatus?: 'synced' | 'syncing' | 'offline';
@@ -47,18 +53,21 @@ export const Navbar: React.FC<NavbarProps> = ({
   listsCount,
   catalogCount,
   requisitionsCount,
+  partnersCount = 0,
   pendingRequisitionsCount = 0,
   onOpenNewListModal,
   onOpenNewRequisitionModal,
+  onOpenNewPartnerModal,
   onExportBackup,
   settings,
   syncStatus = 'synced',
 }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { currentUser, isAdmin, logout } = useAppAuth();
+  const { isDark, toggleTheme } = useTheme();
   const menuDrawerRef = useRef<HTMLDivElement>(null);
 
-  const appName = settings?.appName?.trim() || 'ListaPro Industrial';
+  const appName = settings?.appName?.trim() || 'Maikmaq System';
   const appLogo = settings?.appLogo;
 
   // Close menu on click outside or escape key
@@ -80,15 +89,15 @@ export const Navbar: React.FC<NavbarProps> = ({
   return (
     <>
       <header className="sticky top-0 z-40 border-b border-zinc-800/80 bg-zinc-950/90 backdrop-blur-md">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6">
-          {/* Left: Menu Toggle & Brand / Logo */}
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-2.5 sm:px-6">
+          {/* Left: Menu Toggle & Clean Brand */}
           <div className="flex items-center gap-3">
             {/* Primary Menu Toggle Button */}
             <button
               id="main-menu-toggle-btn"
               type="button"
               onClick={() => setIsMenuOpen(true)}
-              className="inline-flex items-center gap-2 rounded-xl border border-zinc-700/80 bg-zinc-900/90 px-3 py-2 text-xs font-bold text-zinc-200 shadow-sm transition-all hover:border-cyan-500/50 hover:bg-zinc-800 hover:text-cyan-400 active:scale-95"
+              className="inline-flex items-center gap-2 rounded-xl border border-zinc-700/80 bg-zinc-900/90 px-3 py-2 text-xs font-bold text-zinc-200 shadow-sm transition-all hover:border-cyan-500/50 hover:bg-zinc-800 hover:text-cyan-400 active:scale-95 cursor-pointer"
               title="Abrir Menu Principal"
               aria-label="Abrir Menu Principal"
             >
@@ -112,139 +121,137 @@ export const Navbar: React.FC<NavbarProps> = ({
                 </div>
               ) : (
                 <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-cyan-500/40 bg-gradient-to-br from-cyan-950 via-zinc-900 to-zinc-950 text-cyan-400 shadow-md shadow-cyan-950/50 transition-transform group-hover:scale-105">
-                  <span className="font-mono text-lg font-black tracking-tight text-cyan-400 drop-shadow-[0_0_8px_rgba(6,182,212,0.6)]">
-                    M
+                  <span className="font-mono text-sm font-black tracking-tighter text-cyan-400 drop-shadow-[0_0_8px_rgba(6,182,212,0.6)]">
+                    MS
                   </span>
                 </div>
               )}
-              <div>
-                <div className="flex items-center gap-1.5">
-                  <span className="font-bold tracking-tight text-zinc-100 text-sm sm:text-base">
-                    {appName === 'ListaPro Industrial' ? (
-                      <>
-                        Lista<span className="text-cyan-400">Pro</span> Industrial
-                      </>
-                    ) : (
-                      appName
-                    )}
-                  </span>
-                  <span className="rounded border border-zinc-800 bg-zinc-900 px-1 py-0.2 text-[9px] font-mono text-zinc-400">
-                    v1.2
-                  </span>
-                </div>
-                <p className="hidden text-[11px] text-zinc-400 md:block">
-                  Materiais, Insumos & Requisições
-                </p>
-              </div>
+              <span className="font-bold tracking-tight text-zinc-100 text-sm sm:text-base">
+                {appName === 'Maikmaq System' || appName === 'ListaPro Industrial' || !appName ? (
+                  <>
+                    Maikmaq <span className="text-cyan-400">System</span>
+                  </>
+                ) : (
+                  appName
+                )}
+              </span>
             </div>
           </div>
 
-          {/* Desktop Navigation Tabs */}
-          <nav className="hidden md:flex items-center gap-1 sm:gap-2">
-            {/* Tab: Listas Geradas */}
-            <button
-              id="tab-btn-lists"
-              onClick={() => handleSelectTab('lists')}
-              className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-all sm:px-3 sm:py-2 sm:text-sm ${
-                activeTab === 'lists'
-                  ? 'border border-cyan-500/30 bg-cyan-500/10 text-cyan-300 shadow-sm'
-                  : 'text-zinc-400 hover:bg-zinc-900 hover:text-zinc-200'
-              }`}
-            >
-              <ClipboardList className="h-4 w-4" />
-              <span>Listas</span>
-              <span
-                className={`rounded-full px-1.5 py-0.2 text-[10px] sm:text-[11px] font-bold ${
+          {/* Desktop Navigation Tabs & Right Action Bar */}
+          <div className="hidden md:flex items-center gap-4">
+            <nav className="flex items-center gap-1 sm:gap-1.5">
+              {/* Tab: Listas */}
+              <button
+                id="tab-btn-lists"
+                onClick={() => handleSelectTab('lists')}
+                className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all ${
                   activeTab === 'lists'
-                    ? 'bg-cyan-500/20 text-cyan-300'
-                    : 'bg-zinc-800 text-zinc-400'
+                    ? 'border border-cyan-500/30 bg-cyan-500/10 text-cyan-300 shadow-sm'
+                    : 'text-zinc-400 hover:bg-zinc-900 hover:text-zinc-200'
                 }`}
               >
-                {listsCount}
-              </span>
-            </button>
+                <ClipboardList className="h-4 w-4" />
+                <span>Listas</span>
+                <span className="ml-0.5 text-[11px] font-mono opacity-80 font-bold">
+                  {listsCount}
+                </span>
+              </button>
 
-            {/* Tab: Solicitação de Insumos */}
-            <button
-              id="tab-btn-requisitions"
-              onClick={() => handleSelectTab('requisitions')}
-              className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-all sm:px-3 sm:py-2 sm:text-sm ${
-                activeTab === 'requisitions'
-                  ? 'border border-cyan-500/30 bg-cyan-500/10 text-cyan-300 shadow-sm'
-                  : 'text-zinc-400 hover:bg-zinc-900 hover:text-zinc-200'
-              }`}
-            >
-              <FileText className="h-4 w-4 text-cyan-400" />
-              <span>Solicitações</span>
-              <span
-                className={`rounded-full px-1.5 py-0.2 text-[10px] sm:text-[11px] font-bold ${
-                  pendingRequisitionsCount > 0
-                    ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
-                    : activeTab === 'requisitions'
-                    ? 'bg-cyan-500/20 text-cyan-300'
-                    : 'bg-zinc-800 text-zinc-400'
+              {/* Tab: Solicitações */}
+              <button
+                id="tab-btn-requisitions"
+                onClick={() => handleSelectTab('requisitions')}
+                className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all ${
+                  activeTab === 'requisitions'
+                    ? 'border border-cyan-500/30 bg-cyan-500/10 text-cyan-300 shadow-sm'
+                    : 'text-zinc-400 hover:bg-zinc-900 hover:text-zinc-200'
                 }`}
               >
-                {requisitionsCount}
-              </span>
-            </button>
+                <FileText className="h-4 w-4 text-cyan-400" />
+                <span>Solicitações</span>
+                <span className="ml-0.5 text-[11px] font-mono opacity-80 font-bold">
+                  {requisitionsCount}
+                </span>
+                {pendingRequisitionsCount > 0 && (
+                  <span className="h-2 w-2 rounded-full bg-amber-400 animate-pulse ml-0.5" title={`${pendingRequisitionsCount} pendente(s)`} />
+                )}
+              </button>
 
-            {/* Tab: Catálogo */}
-            <button
-              id="tab-btn-catalog"
-              onClick={() => handleSelectTab('catalog')}
-              className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-all sm:px-3 sm:py-2 sm:text-sm ${
-                activeTab === 'catalog'
-                  ? 'border border-cyan-500/30 bg-cyan-500/10 text-cyan-300 shadow-sm'
-                  : 'text-zinc-400 hover:bg-zinc-900 hover:text-zinc-200'
-              }`}
-            >
-              <Package className="h-4 w-4" />
-              <span>Catálogo</span>
-              <span
-                className={`rounded-full px-1.5 py-0.2 text-[10px] sm:text-[11px] font-bold ${
+              {/* Tab: Catálogo */}
+              <button
+                id="tab-btn-catalog"
+                onClick={() => handleSelectTab('catalog')}
+                className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all ${
                   activeTab === 'catalog'
-                    ? 'bg-cyan-500/20 text-cyan-300'
-                    : 'bg-zinc-800 text-zinc-400'
+                    ? 'border border-cyan-500/30 bg-cyan-500/10 text-cyan-300 shadow-sm'
+                    : 'text-zinc-400 hover:bg-zinc-900 hover:text-zinc-200'
                 }`}
               >
-                {catalogCount}
-              </span>
-            </button>
+                <Package className="h-4 w-4" />
+                <span>Catálogo</span>
+                <span className="ml-0.5 text-[11px] font-mono opacity-80 font-bold">
+                  {catalogCount}
+                </span>
+              </button>
 
-            {/* Tab: Configurações (Admin tem acesso total) */}
-            <button
-              id="tab-btn-settings"
-              onClick={() => handleSelectTab('settings')}
-              className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-all sm:px-3 sm:py-2 sm:text-sm ${
-                activeTab === 'settings'
-                  ? 'border border-cyan-500/30 bg-cyan-500/10 text-cyan-300 shadow-sm'
-                  : 'text-zinc-400 hover:bg-zinc-900 hover:text-zinc-200'
-              }`}
-              title={isAdmin ? 'Configurações e Parâmetros (Acesso Total)' : 'Configurações (Apenas Administrador)'}
-            >
-              <Settings className="h-4 w-4" />
-              <span>Configurações</span>
-              {!isAdmin && <Lock className="h-3 w-3 text-amber-400/80" />}
-            </button>
+              {/* Tab: Fornecedores & Clientes */}
+              <button
+                id="tab-btn-partners"
+                onClick={() => handleSelectTab('partners')}
+                className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all ${
+                  activeTab === 'partners'
+                    ? 'border border-cyan-500/30 bg-cyan-500/10 text-cyan-300 shadow-sm'
+                    : 'text-zinc-400 hover:bg-zinc-900 hover:text-zinc-200'
+                }`}
+              >
+                <Users className="h-4 w-4 text-cyan-400" />
+                <span>Parceiros</span>
+                <span className="ml-0.5 text-[11px] font-mono opacity-80 font-bold">
+                  {partnersCount}
+                </span>
+              </button>
 
-            {/* Supabase Cloud DB Badge */}
-            <div
-              id="badge-supabase-active"
-              className="flex items-center gap-1.5 rounded-lg border border-emerald-500/30 bg-emerald-950/30 px-2.5 py-1.5 text-[11px] font-mono text-emerald-300 shadow-sm"
-              title="Banco em Nuvem: Supabase Conectado (PostgreSQL)"
-            >
-              <Server className="h-3.5 w-3.5 text-emerald-400" />
-              <span className="font-semibold">Supabase</span>
-              <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-            </div>
+              {/* Tab: Configurações */}
+              <button
+                id="tab-btn-settings"
+                onClick={() => handleSelectTab('settings')}
+                className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all ${
+                  activeTab === 'settings'
+                    ? 'border border-cyan-500/30 bg-cyan-500/10 text-cyan-300 shadow-sm'
+                    : 'text-zinc-400 hover:bg-zinc-900 hover:text-zinc-200'
+                }`}
+                title={isAdmin ? 'Configurações e Parâmetros (Acesso Total)' : 'Configurações (Apenas Administrador)'}
+              >
+                <Settings className="h-4 w-4" />
+                <span>Configurações</span>
+                {!isAdmin && <Lock className="h-3 w-3 text-amber-400/80" />}
+              </button>
+            </nav>
 
-            {/* Usuário Logado & Botão de Logout */}
-            {currentUser && (
-              <div className="flex items-center gap-1.5 sm:gap-2">
-                <div
-                  className="flex items-center gap-1.5 sm:gap-2 rounded-xl border border-zinc-800 bg-zinc-900/90 px-2 sm:px-2.5 py-1 text-xs text-zinc-200"
-                  title={`Usuário: ${currentUser.name} (${isAdmin ? 'Administrador' : 'Operador'})`}
+            <div className="h-5 w-px bg-zinc-800" />
+
+            {/* Right Controls: User Avatar & New List Action */}
+            <div className="flex items-center gap-2">
+              {/* Primary Action Button: Nova Lista */}
+              <button
+                id="btn-create-new-list-top"
+                onClick={onOpenNewListModal}
+                className="flex items-center gap-1.5 rounded-xl border border-emerald-500/40 bg-emerald-600/90 hover:bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white shadow-sm transition active:scale-95 cursor-pointer"
+                title="Criar nova lista de materiais"
+              >
+                <PlusCircle className="h-4 w-4" />
+                <span>Nova Lista</span>
+              </button>
+
+              {/* Compact User Menu Button */}
+              {currentUser && (
+                <button
+                  type="button"
+                  id="btn-user-avatar-header"
+                  onClick={() => setIsMenuOpen(true)}
+                  className="flex items-center gap-2 rounded-xl border border-zinc-800 bg-zinc-900/90 py-1 px-2 text-xs text-zinc-300 hover:border-cyan-500/40 transition cursor-pointer"
+                  title={`Usuário: ${currentUser.name} (${isAdmin ? 'Administrador' : 'Operador'}) - Clique para abrir o menu`}
                 >
                   <div
                     className={`flex h-6 w-6 items-center justify-center rounded-lg font-bold text-[11px] border ${
@@ -255,82 +262,39 @@ export const Navbar: React.FC<NavbarProps> = ({
                   >
                     {currentUser.name[0]?.toUpperCase() || 'U'}
                   </div>
-                  <span className="hidden xl:inline text-zinc-200 font-medium truncate max-w-[110px]">
+                  <span className="hidden lg:inline font-medium text-zinc-200 truncate max-w-[90px]">
                     {currentUser.name.split(' ')[0]}
                   </span>
-                  <span
-                    className={`px-1.5 py-0.2 rounded text-[9px] font-bold ${
-                      isAdmin
-                        ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30'
-                        : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-                    }`}
-                  >
-                    {isAdmin ? 'ADMIN' : 'OPERADOR'}
-                  </span>
-                </div>
-
-                <button
-                  type="button"
-                  id="btn-navbar-logout"
-                  onClick={logout}
-                  className="flex items-center justify-center rounded-xl border border-zinc-800 bg-zinc-900/80 p-1.5 sm:p-2 text-zinc-400 hover:border-red-500/40 hover:bg-red-950/30 hover:text-red-300 transition"
-                  title="Sair da Conta (Logout)"
-                >
-                  <LogOut className="h-4 w-4" />
                 </button>
-              </div>
-            )}
-
-            {/* Action: Nova Lista Desktop */}
-            <button
-              id="btn-create-new-list-top"
-              onClick={onOpenNewListModal}
-              className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold transition-all sm:px-3 sm:py-2 sm:text-sm ${
-                activeTab === 'new-list'
-                  ? 'border border-emerald-500/30 bg-emerald-500/10 text-emerald-300 shadow-sm'
-                  : 'border border-emerald-600/40 bg-emerald-600/20 text-emerald-300 hover:bg-emerald-600/30'
-              }`}
-            >
-              <PlusCircle className="h-4 w-4 text-emerald-400" />
-              <span>Nova Lista</span>
-            </button>
-          </nav>
-
-          {/* Mobile Right Controls: User Pill & Quick Logout */}
-          <div className="flex items-center gap-2 md:hidden">
-            {/* Supabase status indicator */}
-            <div
-              className="flex items-center gap-1 rounded-lg border border-emerald-500/30 bg-emerald-950/30 px-2 py-1 text-[10px] font-mono text-emerald-400"
-              title="Supabase Conectado"
-            >
-              <Server className="h-3 w-3 text-emerald-400" />
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              )}
             </div>
+          </div>
+
+          {/* Mobile Right Controls: Fast Clean Action & Menu Avatar */}
+          <div className="flex items-center gap-2 md:hidden">
+            <button
+              id="btn-mobile-new-list-header"
+              onClick={onOpenNewListModal}
+              className="flex items-center gap-1 rounded-xl bg-emerald-600 px-2.5 py-1.5 text-xs font-bold text-white shadow-sm active:scale-95"
+              title="Nova Lista"
+            >
+              <PlusCircle className="h-3.5 w-3.5" />
+              <span>Nova</span>
+            </button>
 
             {currentUser && (
-              <div className="flex items-center gap-1.5">
-                <button
-                  type="button"
-                  onClick={() => setIsMenuOpen(true)}
-                  className={`flex h-8 w-8 items-center justify-center rounded-xl text-xs font-bold border ${
-                    isAdmin
-                      ? 'bg-cyan-950 text-cyan-300 border-cyan-500/40'
-                      : 'bg-emerald-950 text-emerald-300 border-emerald-500/40'
-                  }`}
-                  title={`${currentUser.name} (${isAdmin ? 'Admin' : 'Operador'})`}
-                >
-                  {currentUser.name[0]?.toUpperCase() || 'U'}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={logout}
-                  className="flex h-8 w-8 items-center justify-center rounded-xl border border-zinc-800 bg-zinc-900/90 text-zinc-400 hover:border-red-500/40 hover:text-red-300 transition"
-                  title="Sair"
-                >
-                  <LogOut className="h-3.5 w-3.5" />
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={() => setIsMenuOpen(true)}
+                className={`flex h-8 w-8 items-center justify-center rounded-xl text-xs font-bold border ${
+                  isAdmin
+                    ? 'bg-cyan-950 text-cyan-300 border-cyan-500/40'
+                    : 'bg-emerald-950 text-emerald-300 border-emerald-500/40'
+                }`}
+                title={`${currentUser.name} (${isAdmin ? 'Admin' : 'Operador'})`}
+              >
+                {currentUser.name[0]?.toUpperCase() || 'U'}
+              </button>
             )}
           </div>
         </div>
@@ -375,6 +339,66 @@ export const Navbar: React.FC<NavbarProps> = ({
 
             {/* Drawer Navigation Links */}
             <div className="flex-1 overflow-y-auto p-4 space-y-6">
+              {/* Modo Claro / Escuro (Theme Toggle dentro do Menu) */}
+              <div className="rounded-2xl border border-zinc-800 bg-zinc-950/70 p-3.5 shadow-sm">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2.5">
+                    <div
+                      className={`flex h-8 w-8 items-center justify-center rounded-xl border ${
+                        isDark
+                          ? 'border-amber-500/30 bg-amber-500/10 text-amber-400'
+                          : 'border-cyan-500/30 bg-cyan-500/10 text-cyan-400'
+                      }`}
+                    >
+                      {isDark ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
+                    </div>
+                    <div>
+                      <div className="text-xs font-bold text-zinc-100">
+                        Tema da Interface
+                      </div>
+                      <div className="text-[11px] text-zinc-400">
+                        {isDark ? 'Modo Escuro ativado' : 'Modo Claro ativado'}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Segmented Switch: Claro e Escuro */}
+                <div className="grid grid-cols-2 gap-1.5 p-1 rounded-xl bg-zinc-900 border border-zinc-800">
+                  <button
+                    type="button"
+                    id="btn-drawer-theme-light"
+                    onClick={() => {
+                      if (isDark) toggleTheme();
+                    }}
+                    className={`flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                      !isDark
+                        ? 'bg-white text-zinc-900 shadow-sm border border-zinc-200'
+                        : 'text-zinc-400 hover:text-zinc-200'
+                    }`}
+                  >
+                    <Sun className={`h-4 w-4 ${!isDark ? 'text-amber-500' : 'text-zinc-400'}`} />
+                    <span>Modo Claro</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    id="btn-drawer-theme-dark"
+                    onClick={() => {
+                      if (!isDark) toggleTheme();
+                    }}
+                    className={`flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                      isDark
+                        ? 'bg-zinc-800 text-cyan-300 shadow-sm border border-zinc-700'
+                        : 'text-zinc-400 hover:text-zinc-200'
+                    }`}
+                  >
+                    <Moon className={`h-4 w-4 ${isDark ? 'text-cyan-400' : 'text-zinc-400'}`} />
+                    <span>Modo Escuro</span>
+                  </button>
+                </div>
+              </div>
+
               {/* Section 1: Páginas Principais */}
               <div>
                 <div className="px-2 text-[11px] font-bold uppercase tracking-wider text-zinc-500 mb-2">
@@ -454,6 +478,30 @@ export const Navbar: React.FC<NavbarProps> = ({
                     </div>
                     <span className="rounded-full bg-zinc-800 px-2 py-0.5 text-xs font-bold text-zinc-300">
                       {catalogCount}
+                    </span>
+                  </button>
+
+                  {/* Fornecedores & Clientes */}
+                  <button
+                    id="menu-btn-partners"
+                    onClick={() => handleSelectTab('partners')}
+                    className={`flex w-full items-center justify-between rounded-xl px-3.5 py-3 text-sm font-semibold transition-all ${
+                      activeTab === 'partners'
+                        ? 'border border-cyan-500/30 bg-cyan-500/10 text-cyan-300 shadow-sm'
+                        : 'text-zinc-300 hover:bg-zinc-800/80 hover:text-zinc-100'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <Users className="h-5 w-5 text-cyan-400" />
+                      <div className="text-left">
+                        <div>Fornecedores & Clientes</div>
+                        <div className="text-[11px] font-normal text-zinc-400">
+                          Cadastros comerciais, contatos e WhatsApp
+                        </div>
+                      </div>
+                    </div>
+                    <span className="rounded-full bg-zinc-800 px-2 py-0.5 text-xs font-bold text-zinc-300">
+                      {partnersCount}
                     </span>
                   </button>
 
@@ -540,6 +588,23 @@ export const Navbar: React.FC<NavbarProps> = ({
                   Ações Rápidas
                 </div>
                 <div className="space-y-2">
+                  {/* Cadastrar Fornecedor ou Cliente */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsMenuOpen(false);
+                      if (onOpenNewPartnerModal) {
+                        onOpenNewPartnerModal();
+                      } else {
+                        handleSelectTab('partners');
+                      }
+                    }}
+                    className="flex w-full items-center gap-3 rounded-xl border border-cyan-500/40 bg-cyan-500/10 p-3 text-sm font-bold text-cyan-300 transition-colors hover:bg-cyan-500/20"
+                  >
+                    <PlusCircle className="h-5 w-5 text-cyan-400" />
+                    <span>Cadastrar Fornecedor ou Cliente</span>
+                  </button>
+
                   {/* Nova Solicitação de Insumos */}
                   <button
                     type="button"
@@ -547,9 +612,9 @@ export const Navbar: React.FC<NavbarProps> = ({
                       setIsMenuOpen(false);
                       onOpenNewRequisitionModal();
                     }}
-                    className="flex w-full items-center gap-3 rounded-xl border border-cyan-500/40 bg-cyan-500/10 p-3 text-sm font-bold text-cyan-300 transition-colors hover:bg-cyan-500/20"
+                    className="flex w-full items-center gap-3 rounded-xl border border-zinc-700 bg-zinc-800/80 p-3 text-sm font-bold text-zinc-200 transition-colors hover:bg-zinc-800 hover:text-white"
                   >
-                    <PlusCircle className="h-5 w-5 text-cyan-400" />
+                    <PlusCircle className="h-5 w-5 text-amber-400" />
                     <span>Nova Solicitação de Insumos</span>
                   </button>
 
