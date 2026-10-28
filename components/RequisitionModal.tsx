@@ -933,6 +933,7 @@ const RequisitionModalContent: React.FC<RequisitionModalContentProps> = ({
                 <option value="Pendente">🟡 Pendente (Aguardando Análise)</option>
                 <option value="Em Cotação">🔵 Em Cotação (Almoxarifado/Compras)</option>
                 <option value="Aprovada">🟢 Aprovada para Compra</option>
+                <option value="Concluída">✅ Concluída (Finalizada / Arquivada)</option>
                 <option value="Entregue">🟣 Entregue / Atendida</option>
                 <option value="Cancelada">🔴 Cancelada</option>
               </select>

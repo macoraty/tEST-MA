@@ -27,6 +27,7 @@ import {
   Sun,
   Moon,
   Users,
+  CheckCircle2,
 } from 'lucide-react';
 import { useAppAuth } from '@/lib/authContext';
 import { useTheme } from '@/lib/themeContext';
@@ -37,6 +38,9 @@ interface NavbarProps {
   listsCount: number;
   catalogCount: number;
   requisitionsCount: number;
+  completedRequisitionsCount?: number;
+  currentRequisitionsSubTab?: 'active' | 'completed' | 'import-bom';
+  onSelectRequisitionsSubTab?: (subTab: 'active' | 'completed' | 'import-bom') => void;
   partnersCount?: number;
   pendingRequisitionsCount?: number;
   onOpenNewListModal: () => void;
@@ -53,6 +57,9 @@ export const Navbar: React.FC<NavbarProps> = ({
   listsCount,
   catalogCount,
   requisitionsCount,
+  completedRequisitionsCount = 0,
+  currentRequisitionsSubTab = 'active',
+  onSelectRequisitionsSubTab,
   partnersCount = 0,
   pendingRequisitionsCount = 0,
   onOpenNewListModal,
@@ -89,29 +96,29 @@ export const Navbar: React.FC<NavbarProps> = ({
   return (
     <>
       <header className="sticky top-0 z-40 border-b border-zinc-800/80 bg-zinc-950/90 backdrop-blur-md">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-2.5 sm:px-6">
+        <div className="mx-auto flex max-w-[1440px] items-center justify-between gap-1.5 sm:gap-3 px-2 sm:px-4 lg:px-6 py-2 sm:py-2.5">
           {/* Left: Menu Toggle & Clean Brand */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
             {/* Primary Menu Toggle Button */}
             <button
               id="main-menu-toggle-btn"
               type="button"
               onClick={() => setIsMenuOpen(true)}
-              className="inline-flex items-center gap-2 rounded-xl border border-zinc-700/80 bg-zinc-900/90 px-3 py-2 text-xs font-bold text-zinc-200 shadow-sm transition-all hover:border-cyan-500/50 hover:bg-zinc-800 hover:text-cyan-400 active:scale-95 cursor-pointer"
+              className="inline-flex items-center gap-1.5 rounded-xl border border-zinc-700/80 bg-zinc-900/90 px-2.5 py-1.5 sm:px-3 sm:py-2 text-xs font-bold text-zinc-200 shadow-sm transition-all hover:border-cyan-500/50 hover:bg-zinc-800 hover:text-cyan-400 active:scale-95 cursor-pointer shrink-0"
               title="Abrir Menu Principal"
               aria-label="Abrir Menu Principal"
             >
               <Menu className="h-4 w-4 text-cyan-400" />
-              <span className="font-semibold tracking-wide">Menu</span>
+              <span className="font-semibold tracking-wide hidden sm:inline">Menu</span>
             </button>
 
             {/* Brand Logo & Title */}
             <div
               onClick={() => handleSelectTab('lists')}
-              className="flex items-center gap-2.5 cursor-pointer group"
+              className="flex items-center gap-2 sm:gap-2.5 cursor-pointer group shrink-0"
             >
               {appLogo ? (
-                <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-xl border border-cyan-500/40 bg-zinc-900/90 p-1 shadow-md shadow-cyan-950/50 transition-transform group-hover:scale-105">
+                <div className="flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center overflow-hidden rounded-xl border border-cyan-500/40 bg-zinc-900/90 p-1 shadow-md shadow-cyan-950/50 transition-transform group-hover:scale-105 shrink-0">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={appLogo}
@@ -120,32 +127,37 @@ export const Navbar: React.FC<NavbarProps> = ({
                   />
                 </div>
               ) : (
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-cyan-500/40 bg-gradient-to-br from-cyan-950 via-zinc-900 to-zinc-950 text-cyan-400 shadow-md shadow-cyan-950/50 transition-transform group-hover:scale-105">
-                  <span className="font-mono text-sm font-black tracking-tighter text-cyan-400 drop-shadow-[0_0_8px_rgba(6,182,212,0.6)]">
+                <div className="flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-xl border border-cyan-500/40 bg-gradient-to-br from-cyan-950 via-zinc-900 to-zinc-950 text-cyan-400 shadow-md shadow-cyan-950/50 transition-transform group-hover:scale-105 shrink-0">
+                  <span className="font-mono text-xs sm:text-sm font-black tracking-tighter text-cyan-400 drop-shadow-[0_0_8px_rgba(6,182,212,0.6)]">
                     MS
                   </span>
                 </div>
               )}
-              <span className="font-bold tracking-tight text-zinc-100 text-sm sm:text-base">
-                {appName === 'Maikmaq System' || appName === 'ListaPro Industrial' || !appName ? (
-                  <>
-                    Maikmaq <span className="text-cyan-400">System</span>
-                  </>
-                ) : (
-                  appName
-                )}
-              </span>
+              <div className="flex flex-col">
+                <span className="font-bold tracking-tight text-zinc-100 text-xs sm:text-sm md:text-base whitespace-nowrap">
+                  {appName === 'Maikmaq System' || appName === 'ListaPro Industrial' || !appName ? (
+                    <>
+                      Maikmaq <span className="text-cyan-400">System</span>
+                    </>
+                  ) : (
+                    appName
+                  )}
+                </span>
+                <span className="hidden 2xl:inline text-[10px] text-zinc-500 font-medium">
+                  Materiais, Insumos & Requisições
+                </span>
+              </div>
             </div>
           </div>
 
           {/* Desktop Navigation Tabs & Right Action Bar */}
-          <div className="hidden md:flex items-center gap-4">
-            <nav className="flex items-center gap-1 sm:gap-1.5">
+          <div className="hidden md:flex items-center gap-1.5 lg:gap-2.5 min-w-0 flex-1 justify-end">
+            <nav className="flex items-center gap-1 lg:gap-1.5 overflow-x-auto no-scrollbar py-0.5 shrink">
               {/* Tab: Listas */}
               <button
                 id="tab-btn-lists"
                 onClick={() => handleSelectTab('lists')}
-                className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all ${
+                className={`flex items-center gap-1.5 rounded-lg px-2 lg:px-2.5 py-1.5 text-xs font-semibold transition-all shrink-0 whitespace-nowrap ${
                   activeTab === 'lists'
                     ? 'border border-cyan-500/30 bg-cyan-500/10 text-cyan-300 shadow-sm'
                     : 'text-zinc-400 hover:bg-zinc-900 hover:text-zinc-200'
@@ -158,15 +170,19 @@ export const Navbar: React.FC<NavbarProps> = ({
                 </span>
               </button>
 
-              {/* Tab: Solicitações */}
+              {/* Tab: Solicitações em Aberto */}
               <button
                 id="tab-btn-requisitions"
-                onClick={() => handleSelectTab('requisitions')}
-                className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all ${
-                  activeTab === 'requisitions'
+                onClick={() => {
+                  handleSelectTab('requisitions');
+                  onSelectRequisitionsSubTab?.('active');
+                }}
+                className={`flex items-center gap-1.5 rounded-lg px-2 lg:px-2.5 py-1.5 text-xs font-semibold transition-all shrink-0 whitespace-nowrap cursor-pointer ${
+                  activeTab === 'requisitions' && currentRequisitionsSubTab !== 'completed'
                     ? 'border border-cyan-500/30 bg-cyan-500/10 text-cyan-300 shadow-sm'
                     : 'text-zinc-400 hover:bg-zinc-900 hover:text-zinc-200'
                 }`}
+                title="Solicitações de Insumos em Aberto"
               >
                 <FileText className="h-4 w-4 text-cyan-400" />
                 <span>Solicitações</span>
@@ -178,11 +194,33 @@ export const Navbar: React.FC<NavbarProps> = ({
                 )}
               </button>
 
+              {/* Tab: Pedidos Concluídos */}
+              <button
+                id="tab-btn-completed-orders"
+                onClick={() => {
+                  handleSelectTab('requisitions');
+                  onSelectRequisitionsSubTab?.('completed');
+                }}
+                className={`flex items-center gap-1.5 rounded-lg px-2 lg:px-2.5 py-1.5 text-xs font-semibold transition-all shrink-0 whitespace-nowrap cursor-pointer ${
+                  activeTab === 'requisitions' && currentRequisitionsSubTab === 'completed'
+                    ? 'border border-emerald-500/40 bg-emerald-500/15 text-emerald-300 shadow-sm'
+                    : 'text-zinc-400 hover:bg-zinc-900 hover:text-zinc-200'
+                }`}
+                title="Histórico de Pedidos Concluídos"
+              >
+                <CheckCircle2 className="h-4 w-4 text-emerald-400" />
+                <span className="hidden 2xl:inline">Pedidos Concluídos</span>
+                <span className="inline 2xl:hidden">Concluídos</span>
+                <span className="ml-0.5 text-[11px] font-mono opacity-80 font-bold">
+                  {completedRequisitionsCount}
+                </span>
+              </button>
+
               {/* Tab: Catálogo */}
               <button
                 id="tab-btn-catalog"
                 onClick={() => handleSelectTab('catalog')}
-                className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all ${
+                className={`flex items-center gap-1.5 rounded-lg px-2 lg:px-2.5 py-1.5 text-xs font-semibold transition-all shrink-0 whitespace-nowrap ${
                   activeTab === 'catalog'
                     ? 'border border-cyan-500/30 bg-cyan-500/10 text-cyan-300 shadow-sm'
                     : 'text-zinc-400 hover:bg-zinc-900 hover:text-zinc-200'
@@ -199,7 +237,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               <button
                 id="tab-btn-partners"
                 onClick={() => handleSelectTab('partners')}
-                className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all ${
+                className={`flex items-center gap-1.5 rounded-lg px-2 lg:px-2.5 py-1.5 text-xs font-semibold transition-all shrink-0 whitespace-nowrap ${
                   activeTab === 'partners'
                     ? 'border border-cyan-500/30 bg-cyan-500/10 text-cyan-300 shadow-sm'
                     : 'text-zinc-400 hover:bg-zinc-900 hover:text-zinc-200'
@@ -216,7 +254,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               <button
                 id="tab-btn-settings"
                 onClick={() => handleSelectTab('settings')}
-                className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-all ${
+                className={`flex items-center gap-1.5 rounded-lg px-2 lg:px-2.5 py-1.5 text-xs font-semibold transition-all shrink-0 whitespace-nowrap cursor-pointer ${
                   activeTab === 'settings'
                     ? 'border border-cyan-500/30 bg-cyan-500/10 text-cyan-300 shadow-sm'
                     : 'text-zinc-400 hover:bg-zinc-900 hover:text-zinc-200'
@@ -224,24 +262,26 @@ export const Navbar: React.FC<NavbarProps> = ({
                 title={isAdmin ? 'Configurações e Parâmetros (Acesso Total)' : 'Configurações (Apenas Administrador)'}
               >
                 <Settings className="h-4 w-4" />
-                <span>Configurações</span>
+                <span className="hidden xl:inline">Configurações</span>
+                <span className="inline xl:hidden">Config</span>
                 {!isAdmin && <Lock className="h-3 w-3 text-amber-400/80" />}
               </button>
             </nav>
 
-            <div className="h-5 w-px bg-zinc-800" />
+            <div className="h-5 w-px bg-zinc-800 shrink-0" />
 
             {/* Right Controls: User Avatar & New List Action */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 lg:gap-2 shrink-0">
               {/* Primary Action Button: Nova Lista */}
               <button
                 id="btn-create-new-list-top"
                 onClick={onOpenNewListModal}
-                className="flex items-center gap-1.5 rounded-xl border border-emerald-500/40 bg-emerald-600/90 hover:bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white shadow-sm transition active:scale-95 cursor-pointer"
+                className="flex items-center gap-1.5 rounded-xl border border-emerald-500/40 bg-emerald-600/90 hover:bg-emerald-600 px-2 lg:px-2.5 py-1.5 text-xs font-bold text-white shadow-sm transition active:scale-95 cursor-pointer shrink-0 whitespace-nowrap"
                 title="Criar nova lista de materiais"
               >
-                <PlusCircle className="h-4 w-4" />
-                <span>Nova Lista</span>
+                <PlusCircle className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                <span className="hidden xl:inline">Nova Lista</span>
+                <span className="inline xl:hidden">Nova Lista</span>
               </button>
 
               {/* Compact User Menu Button */}
@@ -250,11 +290,11 @@ export const Navbar: React.FC<NavbarProps> = ({
                   type="button"
                   id="btn-user-avatar-header"
                   onClick={() => setIsMenuOpen(true)}
-                  className="flex items-center gap-2 rounded-xl border border-zinc-800 bg-zinc-900/90 py-1 px-2 text-xs text-zinc-300 hover:border-cyan-500/40 transition cursor-pointer"
+                  className="flex items-center gap-1.5 rounded-xl border border-zinc-800 bg-zinc-900/90 py-1 px-2 text-xs text-zinc-300 hover:border-cyan-500/40 transition cursor-pointer shrink-0"
                   title={`Usuário: ${currentUser.name} (${isAdmin ? 'Administrador' : 'Operador'}) - Clique para abrir o menu`}
                 >
                   <div
-                    className={`flex h-6 w-6 items-center justify-center rounded-lg font-bold text-[11px] border ${
+                    className={`flex h-6 w-6 items-center justify-center rounded-lg font-bold text-[11px] border shrink-0 ${
                       isAdmin
                         ? 'bg-cyan-950 text-cyan-300 border-cyan-500/40'
                         : 'bg-emerald-950 text-emerald-300 border-emerald-500/40'
@@ -262,7 +302,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   >
                     {currentUser.name[0]?.toUpperCase() || 'U'}
                   </div>
-                  <span className="hidden lg:inline font-medium text-zinc-200 truncate max-w-[90px]">
+                  <span className="hidden xl:inline font-medium text-zinc-200 truncate max-w-[80px]">
                     {currentUser.name.split(' ')[0]}
                   </span>
                 </button>
@@ -271,11 +311,11 @@ export const Navbar: React.FC<NavbarProps> = ({
           </div>
 
           {/* Mobile Right Controls: Fast Clean Action & Menu Avatar */}
-          <div className="flex items-center gap-2 md:hidden">
+          <div className="flex items-center gap-2 md:hidden shrink-0">
             <button
               id="btn-mobile-new-list-header"
               onClick={onOpenNewListModal}
-              className="flex items-center gap-1 rounded-xl bg-emerald-600 px-2.5 py-1.5 text-xs font-bold text-white shadow-sm active:scale-95"
+              className="flex items-center gap-1 rounded-xl bg-emerald-600 px-2.5 py-1.5 text-xs font-bold text-white shadow-sm active:scale-95 shrink-0"
               title="Nova Lista"
             >
               <PlusCircle className="h-3.5 w-3.5" />
@@ -286,7 +326,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               <button
                 type="button"
                 onClick={() => setIsMenuOpen(true)}
-                className={`flex h-8 w-8 items-center justify-center rounded-xl text-xs font-bold border ${
+                className={`flex h-8 w-8 items-center justify-center rounded-xl text-xs font-bold border shrink-0 ${
                   isAdmin
                     ? 'bg-cyan-950 text-cyan-300 border-cyan-500/40'
                     : 'bg-emerald-950 text-emerald-300 border-emerald-500/40'
@@ -297,6 +337,73 @@ export const Navbar: React.FC<NavbarProps> = ({
               </button>
             )}
           </div>
+        </div>
+
+        {/* Mobile/Tablet Sub-Navbar Tabs: Always accessible, horizontally scrollable */}
+        <div className="flex md:hidden items-center gap-1 overflow-x-auto no-scrollbar px-3 py-1.5 border-t border-zinc-850/80 bg-zinc-950/95">
+          <button
+            onClick={() => handleSelectTab('lists')}
+            className={`flex items-center gap-1 rounded-lg px-2.5 py-1 text-[11px] font-semibold transition-all shrink-0 whitespace-nowrap ${
+              activeTab === 'lists'
+                ? 'border border-cyan-500/30 bg-cyan-500/10 text-cyan-300 shadow-sm'
+                : 'text-zinc-400 hover:text-zinc-200'
+            }`}
+          >
+            <ClipboardList className="h-3.5 w-3.5" />
+            <span>Listas</span>
+            <span className="text-[10px] font-mono opacity-80 font-bold ml-0.5">({listsCount})</span>
+          </button>
+
+          <button
+            onClick={() => handleSelectTab('requisitions')}
+            className={`flex items-center gap-1 rounded-lg px-2.5 py-1 text-[11px] font-semibold transition-all shrink-0 whitespace-nowrap ${
+              activeTab === 'requisitions'
+                ? 'border border-cyan-500/30 bg-cyan-500/10 text-cyan-300 shadow-sm'
+                : 'text-zinc-400 hover:text-zinc-200'
+            }`}
+          >
+            <FileText className="h-3.5 w-3.5 text-cyan-400" />
+            <span>Solicitações</span>
+            <span className="text-[10px] font-mono opacity-80 font-bold ml-0.5">({requisitionsCount})</span>
+          </button>
+
+          <button
+            onClick={() => handleSelectTab('catalog')}
+            className={`flex items-center gap-1 rounded-lg px-2.5 py-1 text-[11px] font-semibold transition-all shrink-0 whitespace-nowrap ${
+              activeTab === 'catalog'
+                ? 'border border-cyan-500/30 bg-cyan-500/10 text-cyan-300 shadow-sm'
+                : 'text-zinc-400 hover:text-zinc-200'
+            }`}
+          >
+            <Package className="h-3.5 w-3.5" />
+            <span>Catálogo</span>
+            <span className="text-[10px] font-mono opacity-80 font-bold ml-0.5">({catalogCount})</span>
+          </button>
+
+          <button
+            onClick={() => handleSelectTab('partners')}
+            className={`flex items-center gap-1 rounded-lg px-2.5 py-1 text-[11px] font-semibold transition-all shrink-0 whitespace-nowrap ${
+              activeTab === 'partners'
+                ? 'border border-cyan-500/30 bg-cyan-500/10 text-cyan-300 shadow-sm'
+                : 'text-zinc-400 hover:text-zinc-200'
+            }`}
+          >
+            <Users className="h-3.5 w-3.5 text-cyan-400" />
+            <span>Parceiros</span>
+            <span className="text-[10px] font-mono opacity-80 font-bold ml-0.5">({partnersCount})</span>
+          </button>
+
+          <button
+            onClick={() => handleSelectTab('settings')}
+            className={`flex items-center gap-1 rounded-lg px-2.5 py-1 text-[11px] font-semibold transition-all shrink-0 whitespace-nowrap ${
+              activeTab === 'settings'
+                ? 'border border-cyan-500/30 bg-cyan-500/10 text-cyan-300 shadow-sm'
+                : 'text-zinc-400 hover:text-zinc-200'
+            }`}
+          >
+            <Settings className="h-3.5 w-3.5" />
+            <span>Configurações</span>
+          </button>
         </div>
       </header>
 
@@ -458,6 +565,35 @@ export const Navbar: React.FC<NavbarProps> = ({
                     </span>
                   </button>
 
+                  {/* Pedidos Concluídos */}
+                  <button
+                    id="menu-btn-completed-orders"
+                    onClick={() => {
+                      handleSelectTab('requisitions');
+                      onSelectRequisitionsSubTab?.('completed');
+                    }}
+                    className={`flex w-full items-center justify-between rounded-xl px-3.5 py-3 text-sm font-semibold transition-all ${
+                      activeTab === 'requisitions' && currentRequisitionsSubTab === 'completed'
+                        ? 'border border-emerald-500/30 bg-emerald-500/10 text-emerald-300 shadow-sm'
+                        : 'text-zinc-300 hover:bg-zinc-800/80 hover:text-zinc-100'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <CheckCircle2 className="h-5 w-5 text-emerald-400" />
+                      <div className="text-left">
+                        <div className="flex items-center gap-1.5">
+                          <span>Pedidos Concluídos</span>
+                        </div>
+                        <div className="text-[11px] font-normal text-zinc-400">
+                          Histórico de pedidos de insumos finalizados
+                        </div>
+                      </div>
+                    </div>
+                    <span className="rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-2 py-0.5 text-xs font-bold">
+                      {completedRequisitionsCount}
+                    </span>
+                  </button>
+
                   {/* Catálogo de Insumos */}
                   <button
                     onClick={() => handleSelectTab('catalog')}
@@ -602,7 +738,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                     className="flex w-full items-center gap-3 rounded-xl border border-cyan-500/40 bg-cyan-500/10 p-3 text-sm font-bold text-cyan-300 transition-colors hover:bg-cyan-500/20"
                   >
                     <PlusCircle className="h-5 w-5 text-cyan-400" />
-                    <span>Cadastrar Fornecedor ou Cliente</span>
+                    <span>cadastrar fornecedor ou cliente</span>
                   </button>
 
                   {/* Nova Solicitação de Insumos */}

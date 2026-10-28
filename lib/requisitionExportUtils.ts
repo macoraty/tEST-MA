@@ -1,6 +1,6 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { SupplyRequisition, AppSettings } from './types';
+import { SupplyRequisition, AppSettings, RequisitionItem } from './types';
 import { formatCurrency, formatDate } from './exportUtils';
 
 /**
@@ -8,7 +8,9 @@ import { formatCurrency, formatDate } from './exportUtils';
  */
 export function exportRequisitionPDF(
   requisition: SupplyRequisition,
-  settings: AppSettings
+  settings: AppSettings,
+  customItems?: RequisitionItem[],
+  supplierName?: string
 ) {
   const doc = new jsPDF({
     orientation: 'portrait',
@@ -73,7 +75,10 @@ export function exportRequisitionPDF(
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(13);
   doc.setTextColor(colorDark[0], colorDark[1], colorDark[2]);
-  doc.text('REQUISIÇÃO INTERNA DE INSUMOS & MATERIAIS', margin, currentY);
+  const docTitle = supplierName
+    ? `COTAÇÃO DE INSUMOS - FORNECEDOR: ${supplierName.toUpperCase()}`
+    : 'REQUISIÇÃO INTERNA DE INSUMOS & MATERIAIS';
+  doc.text(docTitle, margin, currentY);
 
   // Status & Priority Badges on the right
   currentY += 4;
@@ -107,7 +112,7 @@ export function exportRequisitionPDF(
   doc.text('MÁQUINA/DESTINO:', margin + 4, cardY + 21);
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(colorDark[0], colorDark[1], colorDark[2]);
-  doc.text(requisition.destinationMachine || 'Geral / Estoque', margin + 38, cardY + 21);
+  doc.text(supplierName ? `Fornecedor: ${supplierName}` : (requisition.destinationMachine || 'Geral / Estoque'), margin + 38, cardY + 21);
 
   // Column 2: Prioridade, Data Limite, Status
   const col2X = margin + 110;
@@ -147,7 +152,8 @@ export function exportRequisitionPDF(
   currentY = cardY + cardHeight + 6;
 
   // 3. Items Table
-  const tableRows = (requisition.items || []).map((item, idx) => [
+  const activeItems = customItems && customItems.length > 0 ? customItems : (requisition.items || []);
+  const tableRows = activeItems.map((item, idx) => [
     String(idx + 1).padStart(2, '0'),
     item.code || '-',
     item.description || '-',
@@ -210,8 +216,8 @@ export function exportRequisitionPDF(
   let finalY = lastTable ? lastTable.finalY + 5 : currentY + 30;
 
   // 4. Totals Block
-  const totalCost = requisition.items.reduce((acc, i) => acc + (Number(i.totalEstimatedCost) || 0), 0);
-  const totalItemsCount = requisition.items.length;
+  const totalCost = activeItems.reduce((acc, i) => acc + (Number(i.totalEstimatedCost) || 0), 0);
+  const totalItemsCount = activeItems.length;
 
   if (finalY + 35 > pageHeight) {
     doc.addPage();
@@ -292,10 +298,15 @@ export function exportRequisitionPDF(
 export function generateRequisitionWhatsAppUrl(
   requisition: SupplyRequisition,
   settings: AppSettings,
-  targetPhone?: string
+  targetPhone?: string,
+  customItems?: RequisitionItem[],
+  supplierName?: string
 ): string {
+  const items = customItems && customItems.length > 0 ? customItems : requisition.items;
   const company = settings.companyName ? `*${settings.companyName}*\n` : '';
-  const header = `📦 *SOLICITAÇÃO DE INSUMOS & COMPRAS*\n${company}` +
+  const supplierHeader = supplierName ? `🤝 *COTAÇÃO PARA O FORNECEDOR:* ${supplierName.toUpperCase()}\n` : '';
+
+  const header = `📦 *SOLICITAÇÃO DE INSUMOS & COMPRAS*\n${company}${supplierHeader}` +
     `━━━━━━━━━━━━━━━━━━━━━\n` +
     `📋 *Protocolo:* ${requisition.protocol}\n` +
     `🏷️ *Título:* ${requisition.title}\n` +
@@ -307,9 +318,9 @@ export function generateRequisitionWhatsAppUrl(
     (requisition.neededByDate ? `⏳ *Necessidade Limite:* ${formatDate(requisition.neededByDate)}\n` : '') +
     (requisition.justification ? `💬 *Justificativa:* ${requisition.justification}\n` : '') +
     `━━━━━━━━━━━━━━━━━━━━━\n` +
-    `📋 *ITENS REQUISITADOS (${requisition.items.length}):*\n`;
+    `📋 *ITENS REQUISITADOS (${items.length}):*\n`;
 
-  const itemsList = requisition.items
+  const itemsList = items
     .map((item, idx) => {
       const subtotal = item.totalEstimatedCost
         ? ` - ${formatCurrency(item.totalEstimatedCost, settings.currencySymbol)}`
@@ -319,7 +330,7 @@ export function generateRequisitionWhatsAppUrl(
     })
     .join('\n\n');
 
-  const totalCost = requisition.items.reduce((acc, i) => acc + (Number(i.totalEstimatedCost) || 0), 0);
+  const totalCost = items.reduce((acc, i) => acc + (Number(i.totalEstimatedCost) || 0), 0);
   const footer = `\n━━━━━━━━━━━━━━━━━━━━━\n` +
     `💰 *Valor Total Estimado:* ${formatCurrency(totalCost, settings.currencySymbol)}\n` +
     `📊 *Status:* ${requisition.status}\n` +
@@ -332,4 +343,49 @@ export function generateRequisitionWhatsAppUrl(
   return phone
     ? `https://api.whatsapp.com/send?phone=${phone}&text=${encodedText}`
     : `https://api.whatsapp.com/send?text=${encodedText}`;
+}
+
+/**
+ * Builds mailto: URL to email requisition or split quote to supplier/purchaser
+ */
+export function generateRequisitionEmailUrl(
+  requisition: SupplyRequisition,
+  settings: AppSettings,
+  targetEmail?: string,
+  customItems?: RequisitionItem[],
+  supplierName?: string
+): string {
+  const items = customItems && customItems.length > 0 ? customItems : requisition.items;
+  const company = settings.companyName || 'Maikmaq Industrial';
+  const supplierPrefix = supplierName ? `[Cotação ${supplierName}] ` : '';
+  const subject = `${supplierPrefix}[${company}] Solicitação de Insumos - ${requisition.protocol}: ${requisition.title}`;
+  
+  const itemsBody = items
+    .map((it, idx) => `${idx + 1}. [${it.code}] ${it.description} | Qtd: ${it.quantity} ${it.unit} | Custo Est.: ${formatCurrency(it.totalEstimatedCost, settings.currencySymbol)}${it.destinationMachine ? ` (Destino: ${it.destinationMachine})` : ''}`)
+    .join('\n');
+    
+  const totalCost = items.reduce((acc, i) => acc + (Number(i.totalEstimatedCost) || 0), 0);
+  
+  const body = `Olá${supplierName ? ` equipe da ${supplierName}` : ''},\n\n` +
+    `Segue a solicitação de insumos para cotação e fornecimento:\n\n` +
+    `• Protocolo: ${requisition.protocol}\n` +
+    `• Título: ${requisition.title}\n` +
+    `• Solicitante: ${requisition.requesterName || 'Não informado'}\n` +
+    `• Setor: ${requisition.sector || 'Geral'}\n` +
+    (requisition.destinationMachine ? `• Máquina/Aplicação: ${requisition.destinationMachine}\n` : '') +
+    `• Prioridade: ${requisition.priority}\n` +
+    (requisition.neededByDate ? `• Data Limite de Necessidade: ${formatDate(requisition.neededByDate)}\n` : '') +
+    (requisition.justification ? `• Justificativa: ${requisition.justification}\n` : '') +
+    `\nITENS SOLICITADOS (${items.length}):\n` +
+    `----------------------------------------\n` +
+    `${itemsBody}\n` +
+    `----------------------------------------\n` +
+    `VALOR TOTAL ESTIMADO: ${formatCurrency(totalCost, settings.currencySymbol)}\n\n` +
+    `Favor confirmar o recebimento desta solicitação e enviar a cotação formal com condições comerciais e previsão de entrega.\n\n` +
+    `Atenciosamente,\n` +
+    `${company}\n` +
+    (settings.companyPhone ? `Telefone: ${settings.companyPhone}\n` : '') +
+    (settings.companyEmail ? `E-mail: ${settings.companyEmail}\n` : '');
+
+  return `mailto:${targetEmail || ''}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 }

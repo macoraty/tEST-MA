@@ -29,7 +29,7 @@ export default function RootLayout({children}: {children: React.ReactNode}) {
           }}
         />
       </head>
-      <body className="min-h-screen bg-zinc-950 text-zinc-100 antialiased selection:bg-cyan-500 selection:text-zinc-950 transition-colors duration-200" suppressHydrationWarning>
+      <body className="min-h-screen w-full max-w-full overflow-x-hidden bg-zinc-950 text-zinc-100 antialiased selection:bg-cyan-500 selection:text-zinc-950 transition-colors duration-200" suppressHydrationWarning>
         <ThemeProvider>
           <AuthProvider>
             {children}

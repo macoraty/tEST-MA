@@ -349,3 +349,12 @@ html.light ::-webkit-scrollbar-thumb {
 html.light ::-webkit-scrollbar-track {
   background: #f1f3f6;
 }
+
+/* Hide scrollbar utility for clean horizontal scroll navigation */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}

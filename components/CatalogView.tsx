@@ -220,73 +220,72 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
   return (
     <div className="space-y-5">
       {/* Top Title & Actions Bar */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-xl font-bold tracking-tight text-zinc-100 sm:text-2xl">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div className="min-w-0 flex-1">
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-zinc-100">
             Catálogo Geral de Materiais & Insumos
           </h1>
-          <p className="text-xs text-zinc-400">
+          <p className="text-xs text-zinc-400 mt-0.5">
             Base de dados com itens pré-carregados da indústria. Adicione, edite ou exporte para controle.
           </p>
         </div>
 
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
-          {/* Add Item Button (Primary on Mobile) */}
+        {/* Action Buttons - Fully responsive, wrap-friendly and scalable */}
+        <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
+          {/* Export to Excel */}
+          <button
+            onClick={() => exportCatalogToExcel(catalog, settings)}
+            className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-emerald-600/40 bg-emerald-950/40 px-3 py-2 text-xs font-semibold text-emerald-400 transition hover:bg-emerald-900/50 min-h-[38px] active:scale-95 shrink-0 cursor-pointer"
+            title="Exportar todo o catálogo para Excel"
+          >
+            <FileSpreadsheet className="h-4 w-4" />
+            <span>Exportar</span>
+          </button>
+
+          {/* Import from Excel */}
+          {onSaveCatalog && onSaveSettings && (
+            <button
+              id="btn-catalog-import-excel"
+              onClick={() => setIsImportModalOpen(true)}
+              className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-emerald-500/50 bg-emerald-500/10 px-3 py-2 text-xs font-semibold text-emerald-300 transition hover:bg-emerald-500/20 min-h-[38px] active:scale-95 shrink-0 cursor-pointer"
+              title="Importar materiais de planilha Excel (.xlsx, .xls, .csv)"
+            >
+              <Upload className="h-4 w-4 text-emerald-400" />
+              <span>Importar</span>
+            </button>
+          )}
+
+          {/* Reset button */}
+          <button
+            onClick={() => setShowResetConfirm(true)}
+            className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-zinc-800 bg-zinc-900 px-3 py-2 text-xs font-medium text-zinc-400 transition hover:bg-zinc-800 hover:text-zinc-200 min-h-[38px] active:scale-95 shrink-0 cursor-pointer"
+            title="Restaurar banco original com 300+ itens da PDF"
+          >
+            <RotateCcw className="h-3.5 w-3.5" />
+            <span>Restaurar</span>
+          </button>
+
+          {/* Delete All button */}
+          <button
+            id="btn-delete-all-catalog"
+            onClick={() => setShowDeleteAllModal(true)}
+            disabled={catalog.length === 0}
+            className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-rose-500/40 bg-rose-950/30 px-3 py-2 text-xs font-semibold text-rose-300 transition hover:bg-rose-900/50 hover:text-rose-200 disabled:opacity-40 disabled:cursor-not-allowed shadow-sm min-h-[38px] active:scale-95 shrink-0 cursor-pointer"
+            title="Excluir todos os materiais cadastrados do catálogo"
+          >
+            <Trash2 className="h-4 w-4 text-rose-400" />
+            <span>Limpar ({catalog.length})</span>
+          </button>
+
+          {/* Add Item Button (Primary Action) */}
           <button
             id="btn-add-new-catalog-item"
             onClick={onOpenAddItemModal}
-            className="flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 px-4 py-2.5 text-xs font-bold text-white shadow-lg shadow-cyan-950/40 transition hover:from-cyan-400 hover:to-blue-500 min-h-[40px] order-1 sm:order-2"
+            className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 px-4 py-2 text-xs font-bold text-white shadow-lg shadow-cyan-950/40 transition hover:from-cyan-400 hover:to-blue-500 min-h-[38px] active:scale-95 shrink-0 cursor-pointer"
           >
             <PlusCircle className="h-4 w-4" />
             <span>+ Novo Item</span>
           </button>
-
-          <div className="grid grid-cols-2 sm:flex items-center gap-2 order-2 sm:order-1">
-            {/* Export to Excel */}
-            <button
-              onClick={() => exportCatalogToExcel(catalog, settings)}
-              className="flex items-center justify-center gap-1.5 rounded-xl border border-emerald-600/40 bg-emerald-950/40 px-3 py-2 text-xs font-semibold text-emerald-400 transition hover:bg-emerald-900/50 min-h-[38px]"
-              title="Exportar todo o catálogo para Excel"
-            >
-              <FileSpreadsheet className="h-4 w-4" />
-              <span>Exportar</span>
-            </button>
-
-            {/* Import from Excel */}
-            {onSaveCatalog && onSaveSettings && (
-              <button
-                id="btn-catalog-import-excel"
-                onClick={() => setIsImportModalOpen(true)}
-                className="flex items-center justify-center gap-1.5 rounded-xl border border-emerald-500/50 bg-emerald-500/10 px-3 py-2 text-xs font-semibold text-emerald-300 transition hover:bg-emerald-500/20 min-h-[38px]"
-                title="Importar materiais de planilha Excel (.xlsx, .xls, .csv)"
-              >
-                <Upload className="h-4 w-4 text-emerald-400" />
-                <span>Importar</span>
-              </button>
-            )}
-
-            {/* Reset button */}
-            <button
-              onClick={() => setShowResetConfirm(true)}
-              className="flex items-center justify-center gap-1.5 rounded-xl border border-zinc-800 bg-zinc-900 px-3 py-2 text-xs font-medium text-zinc-400 transition hover:bg-zinc-800 hover:text-zinc-200 min-h-[38px]"
-              title="Restaurar banco original com 300+ itens da PDF"
-            >
-              <RotateCcw className="h-3.5 w-3.5" />
-              <span>Restaurar</span>
-            </button>
-
-            {/* Delete All button */}
-            <button
-              id="btn-delete-all-catalog"
-              onClick={() => setShowDeleteAllModal(true)}
-              disabled={catalog.length === 0}
-              className="flex items-center justify-center gap-1.5 rounded-xl border border-rose-500/40 bg-rose-950/30 px-3 py-2 text-xs font-semibold text-rose-300 transition hover:bg-rose-900/50 hover:text-rose-200 disabled:opacity-40 disabled:cursor-not-allowed shadow-sm min-h-[38px]"
-              title="Excluir todos os materiais cadastrados do catálogo"
-            >
-              <Trash2 className="h-4 w-4 text-rose-400" />
-              <span>Limpar ({catalog.length})</span>
-            </button>
-          </div>
         </div>
       </div>
 
@@ -595,7 +594,7 @@ export const CatalogView: React.FC<CatalogViewProps> = ({
       {/* DESKTOP VIEW: Catalog Table (hidden on mobile) */}
       <div className="hidden md:block overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-950 shadow-xl">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs text-zinc-300">
+          <table className="w-full text-left text-xs text-zinc-300 min-w-[760px]">
             <thead className="border-b border-zinc-800 bg-zinc-900/90 text-zinc-400">
               <tr>
                 <th className="w-10 px-3 py-3 text-center">

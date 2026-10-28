@@ -88,6 +88,7 @@ export default function Home() {
   const [selectedBOMForRequisition, setSelectedBOMForRequisition] = useState<string | null>(null);
   const [isRequisitionPreviewOpen, setIsRequisitionPreviewOpen] = useState(false);
   const [previewingRequisition, setPreviewingRequisition] = useState<SupplyRequisition | null>(null);
+  const [requisitionsSubTab, setRequisitionsSubTab] = useState<'active' | 'completed' | 'import-bom'>('active');
 
   // Success toast / notification banner
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -277,6 +278,8 @@ export default function Home() {
   }
 
   const pendingReqsCount = requisitions.filter((r) => r.status === 'Pendente').length;
+  const activeReqsCount = requisitions.filter((r) => r.status !== 'Concluída').length;
+  const completedReqsCount = requisitions.filter((r) => r.status === 'Concluída').length;
 
   // Se não estiver autenticado, exibe a tela de login com senha
   if (!isAuthLoading && !currentUser) {
@@ -316,7 +319,14 @@ export default function Home() {
           onExportBackup={exportBackupJSON}
           listsCount={lists.length}
           catalogCount={catalog.length}
-          requisitionsCount={requisitions.length}
+          requisitionsCount={activeReqsCount}
+          completedRequisitionsCount={completedReqsCount}
+          currentRequisitionsSubTab={requisitionsSubTab}
+          onSelectRequisitionsSubTab={(sub) => {
+            setActiveListId(null);
+            setActiveTab('requisitions');
+            setRequisitionsSubTab(sub);
+          }}
           partnersCount={partners.length}
           pendingRequisitionsCount={pendingReqsCount}
           settings={settings}
@@ -324,7 +334,7 @@ export default function Home() {
         />
 
         {/* Main Container */}
-        <main className="mx-auto max-w-7xl px-3 pt-4 sm:px-6 sm:pt-6 lg:px-8">
+        <main className="mx-auto max-w-[1440px] px-2 sm:px-4 lg:px-6 pt-3 sm:pt-6 w-full min-w-0">
           {/* Render View based on state */}
           {activeEditingList ? (
             /* 1. LIST EDITOR (SEARCH & ADD ITEMS VIEW) */
@@ -372,7 +382,10 @@ export default function Home() {
             <RequisitionsView
               requisitions={requisitions}
               lists={lists}
+              partners={partners}
               settings={settings}
+              subTab={requisitionsSubTab}
+              onSubTabChange={setRequisitionsSubTab}
               onOpenNewRequisitionModal={handleOpenNewRequisitionModal}
               onEditRequisition={handleEditRequisition}
               onPreviewRequisition={handlePreviewRequisition}

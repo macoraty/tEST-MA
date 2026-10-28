@@ -383,7 +383,7 @@ export const ListEditor: React.FC<ListEditorProps> = ({
 
           {/* Right: Actions (Save, Export PDF, Excel, WhatsApp, Preview) */}
           <div className="flex flex-wrap items-center gap-2">
-            <div className="grid grid-cols-4 sm:flex items-center gap-1.5 w-full sm:w-auto">
+            <div className="flex flex-wrap items-center gap-1.5 w-full sm:w-auto">
               {/* Visualizar Lista */}
               <button
                 onClick={() => setIsPreviewOpen(true)}

@@ -135,7 +135,7 @@ ALTER PUBLICATION supabase_realtime ADD TABLE public.app_data;
  * Sync operations for Supabase
  */
 export async function syncDataToSupabase(
-  key: 'catalog' | 'lists' | 'requisitions' | 'settings' | 'users',
+  key: 'catalog' | 'lists' | 'requisitions' | 'settings' | 'users' | 'partners',
   data: unknown
 ): Promise<boolean> {
   const client = getSupabaseClient();
@@ -163,7 +163,7 @@ export async function syncDataToSupabase(
 }
 
 export async function loadDataFromSupabase(
-  key: 'catalog' | 'lists' | 'requisitions' | 'settings' | 'users'
+  key: 'catalog' | 'lists' | 'requisitions' | 'settings' | 'users' | 'partners'
 ): Promise<unknown | null> {
   const client = getSupabaseClient();
   if (!client) return null;

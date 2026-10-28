@@ -133,7 +133,7 @@ export interface Partner {
 export type ActiveTab = 'lists' | 'new-list' | 'catalog' | 'settings' | 'requisitions' | 'partners';
 
 export type RequisitionPriority = 'Baixa' | 'Normal' | 'Alta' | 'Urgente';
-export type RequisitionStatus = 'Pendente' | 'Em Cotação' | 'Aprovada' | 'Entregue' | 'Cancelada';
+export type RequisitionStatus = 'Pendente' | 'Em Cotação' | 'Aprovada' | 'Entregue' | 'Concluída' | 'Cancelada';
 
 export interface RequisitionItem {
   id: string;
