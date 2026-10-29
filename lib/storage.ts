@@ -171,7 +171,14 @@ export function sanitizeMaterialList(list: unknown, index = 0): MaterialList {
  */
 export function sanitizeRequisition(req: unknown, index = 0): SupplyRequisition {
   const validPriorities: RequisitionPriority[] = ['Baixa', 'Normal', 'Alta', 'Urgente'];
-  const validStatuses: RequisitionStatus[] = ['Pendente', 'Em Cotação', 'Aprovada', 'Entregue', 'Cancelada'];
+  const validStatuses: RequisitionStatus[] = [
+    'Pendente',
+    'Em Cotação',
+    'Aprovada',
+    'Entregue',
+    'Concluída',
+    'Cancelada',
+  ];
 
   if (!req || typeof req !== 'object') {
     return {
@@ -819,6 +826,21 @@ async function initSupabaseSync() {
     } else {
       const localSettings = getSettingsSnapshot();
       await syncDataToSupabase('settings', localSettings);
+    }
+
+    // 5. Partners
+    const remotePartners = (await loadDataFromSupabase('partners')) as Partner[] | null;
+    if (remotePartners && Array.isArray(remotePartners) && remotePartners.length > 0) {
+      const sanitized = remotePartners.map((p, idx) => sanitizePartner(p, idx));
+      cachedPartners = sanitized;
+      try {
+        localStorage.setItem(STORAGE_KEYS.PARTNERS, JSON.stringify(sanitized));
+      } catch {}
+    } else {
+      const localPartners = getPartnersSnapshot();
+      if (localPartners && localPartners.length > 0) {
+        await syncDataToSupabase('partners', localPartners);
+      }
     }
 
     cloudSyncStatus = 'synced';
@@ -1889,12 +1911,14 @@ export function useIndustrialStorage() {
       const curLists = getListsSnapshot();
       const curReqs = getRequisitionsSnapshot();
       const curSettings = getSettingsSnapshot();
+      const curPartners = getPartnersSnapshot();
 
       if (targetProvider === 'supabase') {
         await syncDataToSupabase('catalog', curCatalog);
         await syncDataToSupabase('lists', curLists);
         await syncDataToSupabase('requisitions', curReqs);
         await syncDataToSupabase('settings', curSettings);
+        await syncDataToSupabase('partners', curPartners);
       } else if (targetProvider === 'firebase') {
         await seedCatalogToFirestore(curCatalog);
         await seedListsToFirestore(curLists);

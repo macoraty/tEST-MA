@@ -131,11 +131,19 @@ CREATE POLICY "Acesso publico app_data" ON public.app_data
 ALTER PUBLICATION supabase_realtime ADD TABLE public.app_data;
 `;
 
+export type SupabaseDataKey =
+  | 'catalog'
+  | 'lists'
+  | 'requisitions'
+  | 'settings'
+  | 'users'
+  | 'partners';
+
 /**
  * Sync operations for Supabase
  */
 export async function syncDataToSupabase(
-  key: 'catalog' | 'lists' | 'requisitions' | 'settings' | 'users' | 'partners',
+  key: SupabaseDataKey | string,
   data: unknown
 ): Promise<boolean> {
   const client = getSupabaseClient();
@@ -163,7 +171,7 @@ export async function syncDataToSupabase(
 }
 
 export async function loadDataFromSupabase(
-  key: 'catalog' | 'lists' | 'requisitions' | 'settings' | 'users' | 'partners'
+  key: SupabaseDataKey | string
 ): Promise<unknown | null> {
   const client = getSupabaseClient();
   if (!client) return null;
